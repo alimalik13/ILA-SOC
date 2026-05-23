@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  ila-soc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ila-soc-server
+    ports:
+      - "8080:8080"
+    environment:
+      - FLASK_ENV=production
+      - PORT=8080
+      - VT_API_KEY=${VT_API_KEY:-}
+      - SESSION_SECRET=${SESSION_SECRET:-your-secret-key-here}
+      - AGENT_API_KEY=${AGENT_API_KEY:-ila-soc-agent-key-2024}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+      - ila-soc-db:/app/ila_soc.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/dashboard"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  ila-soc-db:

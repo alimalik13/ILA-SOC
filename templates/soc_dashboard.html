@@ -1,0 +1,979 @@
+{% extends "base.html" %}
+
+{% block title %}SOC Console | ILA-SOC{% endblock %}
+{% block page_title %}
+    <span id="global-page-title">Threat Overview</span>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* 
+    =================================================
+    ENTERPRISE SIEM DESIGN SYSTEM (ILA-SOC)
+    =================================================
+    */
+    .dashboard-container {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        font-family: 'Inter', sans-serif;
+        background: var(--bg-primary);
+        width: 100%;
+        min-height: 100%;
+        box-sizing: border-box;
+    }
+
+    /* --- SIEM GRID SYSTEM --- */
+    .siem-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 20px;
+        width: 100%;
+        align-items: start;
+    }
+
+    .siem-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .panel-header {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        padding: 10px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 40px;
+    }
+
+    .panel-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .panel-body {
+        padding: 16px;
+        flex: 1;
+    }
+
+    /* --- INVESTIGATION HEADER --- */
+    .investigation-header {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 8px;
+    }
+
+    .header-main { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+    .header-top-row { display: flex; align-items: center; gap: 16px; }
+    .header-id { font-size: 20px; font-weight: 800; color: var(--text-primary); }
+    .header-meta-grid { display: flex; gap: 32px; flex-wrap: wrap; }
+    .meta-item { display: flex; flex-direction: column; gap: 2px; }
+    .meta-label { font-size: 9px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); }
+    .meta-value { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+
+    /* --- STATUS BADGES --- */
+    .siem-badge { padding: 3px 8px; border-radius: 3px; font-size: 9px; font-weight: 800; text-transform: uppercase; display: inline-block; line-height: 1.2; }
+    .badge-malicious, .badge-high, .badge-critical { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .badge-suspicious, .badge-medium { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+    .badge-normal, .badge-low { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+
+    /* --- TAB SYSTEM --- */
+    .siem-tabs { display: flex; border-bottom: 1px solid var(--border-color); background: var(--bg-secondary); width: 100%; }
+    .siem-tab-btn { 
+        padding: 12px 18px; 
+        font-size: 10px; 
+        font-weight: 700; 
+        text-transform: uppercase; 
+        border: none; 
+        background: none; 
+        color: var(--text-muted); 
+        cursor: pointer; 
+        border-bottom: 2px solid transparent; 
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .siem-tab-btn.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); background: rgba(59, 130, 246, 0.05); }
+    .siem-tab-btn:hover:not(.active) { color: var(--text-primary); background: var(--bg-hover); }
+
+    /* --- BUTTONS --- */
+    .siem-btn { padding: 8px 14px; font-size: 10px; font-weight: 700; text-transform: uppercase; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; }
+    .siem-btn:hover { border-color: var(--accent-blue); color: var(--text-primary); background: var(--bg-hover); }
+    .btn-accent { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+    .btn-danger { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }
+
+    /* --- TABLE STYLING --- */
+    .siem-table { width: 100%; border-collapse: collapse; }
+    .siem-table th { text-align: left; font-size: 10px; text-transform: uppercase; color: var(--text-muted); padding: 12px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
+    .siem-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); font-size: 11px; color: var(--text-secondary); }
+    .siem-table tr:hover td { background: var(--bg-hover); }
+
+    /* --- SEARCH BAR --- */
+    .siem-search-container { position: relative; margin-bottom: 16px; width: 100%; max-width: 400px; }
+    .siem-input { 
+        width: 100%; 
+        padding: 10px 16px; 
+        padding-left: 36px; 
+        background: var(--bg-secondary); 
+        border: 1px solid var(--border-color); 
+        border-radius: 4px; 
+        color: var(--text-primary); 
+        font-size: 13px; 
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .siem-input:focus { border-color: var(--accent-blue); }
+    .siem-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+
+    /* --- LAYOUT UTILS --- */
+    .col-q { grid-column: span 3; }
+    .col-w { grid-column: span 6; }
+    .col-i { grid-column: span 3; }
+
+    .siem-metric-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; width: 100%; margin-bottom: 8px; }
+    .siem-metric-card { background: var(--bg-card); border: 1px solid var(--border-color); padding: 16px; border-radius: 4px; }
+    .metric-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+    .metric-value { font-size: 22px; font-weight: 800; color: var(--text-primary); }
+
+    .posture-item { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .posture-label { font-size: 9px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: flex; justify-content: space-between; }
+    .posture-bar-bg { height: 4px; background: var(--bg-secondary); border-radius: 2px; overflow: hidden; }
+    .posture-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+
+    /* --- INCIDENT QUEUE --- */
+    .queue-item { padding: 12px 16px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: all 0.2s; }
+    .queue-item:hover { background: var(--bg-hover); }
+    .queue-item.active { background: rgba(59, 130, 246, 0.05); border-left: 3px solid var(--accent-blue); }
+    .queue-item-id { font-size: 11px; font-weight: 800; color: var(--text-primary); display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .queue-item-title { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .queue-item-meta { font-size: 10px; color: var(--text-muted); }
+
+    /* Agent status colors */
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .status-active { background: #10b981; box-shadow: 0 0 5px #10b981; }
+    .status-offline { background: #ef4444; }
+    .status-idle { background: #f59e0b; }
+
+    /* --- PROCESS TREE --- */
+    .tree-node {
+        position: relative;
+        padding-left: 20px;
+        margin-top: 10px;
+        border-left: 1px dashed var(--border-color);
+    }
+    .tree-node:first-child { border-left: none; padding-left: 0; }
+    
+    .node-content {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        padding: 10px 14px;
+        border-radius: 4px;
+        position: relative;
+        margin-bottom: 8px;
+    }
+    .node-content::before {
+        content: "";
+        position: absolute;
+        left: -20px;
+        top: 50%;
+        width: 20px;
+        height: 1px;
+        border-top: 1px dashed var(--border-color);
+    }
+    .tree-node:first-child > .node-content::before { display: none; }
+    
+    .node-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .node-name { font-size: 11px; font-weight: 800; color: var(--accent-blue); }
+    .node-pid { font-size: 9px; color: var(--text-muted); font-weight: 700; }
+    .node-cmd { 
+        font-size: 10px; 
+        font-family: 'JetBrains Mono', 'Consolas', monospace; 
+        color: var(--text-secondary); 
+        word-break: break-all; 
+        display: block;
+        background: rgba(0,0,0,0.1);
+        padding: 4px 8px;
+        border-radius: 2px;
+    }
+
+    /* --- MODAL --- */
+    .siem-modal-overlay { 
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+        background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 40px; 
+    }
+    .siem-modal { 
+        background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; width: 100%; max-width: 900px; 
+        max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+    }
+    .modal-header { padding: 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-secondary); display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 24px; flex: 1; }
+    
+    .profile-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .profile-stat-card { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 16px; border-radius: 4px; text-align: center; }
+    
+    /* Page isolation */
+    #threat-overview-page, #behavior-analytics-page, #structured-incidents-page { width: 100%; display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ── THREAT OVERVIEW PAGE ────────────────────────────────────────────── -->
+<div id="threat-overview-page" class="dashboard-container">
+    <div class="siem-metric-strip">
+        <div class="siem-metric-card"><div class="metric-label">Total Logs</div><div class="metric-value" id="totalLogs">0</div></div>
+        <div class="siem-metric-card"><div class="metric-label">Active Alerts</div><div class="metric-value" id="activeAlerts" style="color: var(--accent-red)">0</div></div>
+        <div class="siem-metric-card"><div class="metric-label">False Positives</div><div class="metric-value" id="falsePositives" style="color: var(--accent-green)">0</div></div>
+        <div class="siem-metric-card"><div class="metric-label">Open Incidents</div><div class="metric-value" id="openIncidents" style="color: var(--accent-yellow)">0</div></div>
+        <div class="siem-metric-card"><div class="metric-label">Resolved</div><div class="metric-value" id="resolvedIncidents">0</div></div>
+        <div class="siem-metric-card"><div class="metric-label">Agents</div><div class="metric-value" id="agentCount" style="color: var(--accent-cyan)">0</div></div>
+    </div>
+
+    <div class="siem-grid">
+        <!-- LEFT COLUMN (8 cols) -->
+        <div style="grid-column: span 8; display: flex; flex-direction: column; gap: 20px;">
+            <div class="siem-panel">
+                <div class="panel-header">
+                    <span class="panel-title">Alert Evolution</span>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="siem-btn" style="padding: 4px 8px; font-size: 9px;" onclick="setChartRange('1h', this)">1H</button>
+                        <button class="siem-btn active" style="padding: 4px 8px; font-size: 9px;" onclick="setChartRange('24h', this)">24H</button>
+                    </div>
+                </div>
+                <div class="panel-body"><div style="height: 220px;"><canvas id="timelineChart"></canvas></div></div>
+            </div>
+
+            <div class="siem-panel">
+                <div class="panel-header"><span class="panel-title">Active Threat Intelligence Feed</span></div>
+                <div class="panel-body" style="padding: 0;"><table class="siem-table"><thead><tr><th>Timestamp</th><th>Agent</th><th>Detection / Rule</th><th>Severity</th><th>MITRE</th><th>Actions</th></tr></thead><tbody id="siemAlertBody"></tbody></table></div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN (4 cols) -->
+        <div style="grid-column: span 4; display: flex; flex-direction: column; gap: 20px;">
+            <div class="siem-panel">
+                <div class="panel-header"><span class="panel-title">Security Posture</span></div>
+                <div class="panel-body">
+                    <div class="posture-item">
+                        <div class="posture-label"><span>Threat Score</span><span id="stat-threat-score">0%</span></div>
+                        <div class="posture-bar-bg"><div id="bar-threat-score" class="posture-bar-fill" style="width: 0%; background: var(--accent-red)"></div></div>
+                    </div>
+                    <div class="posture-item">
+                        <div class="posture-label"><span>Detection Accuracy</span><span id="stat-accuracy">0%</span></div>
+                        <div class="posture-bar-bg"><div id="bar-accuracy" class="posture-bar-fill" style="width: 0%; background: var(--accent-green)"></div></div>
+                    </div>
+                    <div style="height: 100px; width: 100%;"><canvas id="severityPieChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- AGENT MONITORING PANEL (Filling Space) -->
+            <div class="siem-panel">
+                <div class="panel-header"><span class="panel-title">Agent Monitoring</span></div>
+                <div class="panel-body" style="padding: 0; max-height: 200px; overflow-y: auto;">
+                    <table class="siem-table" style="font-size: 10px;">
+                        <thead><tr><th>Endpoint</th><th>Status</th><th>Events</th></tr></thead>
+                        <tbody id="agent-status-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="siem-panel">
+                <div class="panel-header"><span class="panel-title">Analyst Quick Actions</span></div>
+                <div class="panel-body">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; gap: 8px;">
+                            <button class="siem-btn" style="flex:1" onclick="investigateLog(0)">Triage Queue</button>
+                            <button class="siem-btn" style="flex:1" onclick="showStructuredIncidents()">Investigation</button>
+                        </div>
+                        <button class="siem-btn btn-accent" onclick="generatePDFReport()" id="pdfActionLabel">Export PDF Report</button>
+                        <div style="display: flex; gap: 8px; margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 8px;">
+                            <button class="siem-btn" style="flex:1; color: var(--accent-red);" onclick="clearAlertsQueue()">Clear Alerts</button>
+                            <button class="siem-btn" style="flex:1; color: var(--accent-red);" onclick="resetIncidentQueue()">Clear Incidents</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="siem-panel">
+                <div class="panel-header"><span class="panel-title">MITRE ATT&CK® Tactics</span></div>
+                <div class="panel-body">
+                    <div id="mitreTacticSummary" style="font-size: 10px; display: flex; flex-direction: column; gap: 6px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── INCIDENT INVESTIGATION PAGE ──────────────────────────────────────── -->
+<div id="structured-incidents-page" class="dashboard-container">
+    
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 0px;">
+        <button class="siem-btn btn-danger" onclick="resetIncidentQueue()" style="background: rgba(239, 68, 68, 0.1); border-color: var(--accent-red); padding: 8px 16px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            CLEAR ALL INCIDENTS
+        </button>
+    </div>
+    
+    <!-- INCIDENT TRIAGE HEADER -->
+    <div class="investigation-header">
+        <div class="header-main">
+            <div class="header-top-row">
+                <div class="header-id" id="triage-incident-id">SELECT INCIDENT</div>
+                <div id="triage-status" class="siem-badge" style="background: var(--bg-hover);">--</div>
+            </div>
+            <div class="header-meta-grid">
+                <div class="meta-item"><span class="meta-label">Confidence</span><span class="meta-value" id="triage-confidence">--</span></div>
+                <div class="meta-item"><span class="meta-label">Assigned To</span><span class="meta-value" id="triage-assigned">Unassigned</span></div>
+                <div class="meta-item"><span class="meta-label">Affected Host</span><span class="meta-value" id="triage-host" style="color: var(--accent-blue);">--</span></div>
+                <div class="meta-item"><span class="meta-label">Affected User</span><span class="meta-value" id="triage-user">--</span></div>
+                <div class="meta-item"><span class="meta-label">MITRE Technique</span><span class="meta-value" id="triage-mitre" style="color: var(--accent-yellow);">--</span></div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end;">
+            <!-- Core Management -->
+            <div style="display: flex; gap: 6px; border-right: 1px solid var(--border-color); padding-right: 12px; margin-right: 4px;">
+                <button class="siem-btn" onclick="assignToMe()" title="Assign to currently logged in analyst">Assign to Me</button>
+                <button class="siem-btn btn-accent" onclick="updateIncidentStatus('Resolved')" title="Close incident as resolved">Resolve</button>
+                <button class="siem-btn btn-danger" onclick="escalateIncidentToL3()" title="Escalate to Senior IR Team">Escalate L3</button>
+            </div>
+            
+            <!-- Response Actions -->
+            <div style="display: flex; gap: 6px; border-right: 1px solid var(--border-color); padding-right: 12px; margin-right: 4px;">
+                <button class="siem-btn btn-danger" onclick="isolateHost()" title="Cut off network access for this host">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Isolate Host
+                </button>
+                <button class="siem-btn" onclick="killProcess()" title="Terminate malicious process tree">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    Kill Process
+                </button>
+                <button class="siem-btn" onclick="quarantineFile()" title="Move file to secure vault">Quarantine File</button>
+                <button class="siem-btn" onclick="blockIP()" title="Block IP at Firewall">Block IP</button>
+                <button class="siem-btn" onclick="blockDomain()" title="Blacklist Domain in DNS">Block Domain</button>
+            </div>
+        
+            <!-- Intel & Comms -->
+            <div style="display: flex; gap: 6px;">
+                <button class="siem-btn" onclick="recommendResponse()" title="Get AI-driven response recommendations">Recommend Action</button>
+                <button class="siem-btn" onclick="triggerIOCSearch()" title="Search for these IOCs across the enterprise">IOC Search</button>
+                <button class="siem-btn" onclick="sendEmailAlert()" title="Notify team via Email/SIP">Notify Team</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="siem-grid">
+        <!-- LEFT: INCIDENT QUEUE (3 columns) -->
+        <div class="siem-panel col-q">
+            <div class="panel-header">
+                <span class="panel-title">Incident Queue</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="siem-btn" onclick="resetIncidentQueue()" title="Clear All Incidents" style="padding: 2px 6px; font-size: 8px; color: var(--accent-red); border-color: rgba(239, 68, 68, 0.2);">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        RESET
+                    </button>
+                    <span id="queue-count" class="siem-badge" style="background: var(--bg-secondary);">0</span>
+                </div>
+            </div>
+            <div class="panel-body" style="padding: 0; max-height: 600px; overflow-y: auto;">
+                <div id="incident-queue-list"></div>
+            </div>
+        </div>
+
+        <!-- CENTER: INVESTIGATION WORKSPACE (6 columns) -->
+        <div class="siem-panel col-w">
+            <div class="siem-tabs">
+                <button class="siem-tab-btn active" onclick="switchInvestigationTab('tab-summary', this)">Executive Summary</button>
+                <button class="siem-tab-btn" onclick="switchInvestigationTab('tab-lineage', this)">Process Lineage</button>
+                <button class="siem-tab-btn" onclick="switchInvestigationTab('tab-timeline', this)">Timeline</button>
+                <button class="siem-tab-btn" onclick="switchInvestigationTab('tab-evidence', this)">Raw Evidence</button>
+            </div>
+            <div class="panel-body" style="min-height: 480px; background: var(--bg-card);">
+                <div id="tab-summary" class="investigation-tab-content">
+                    <div id="triage-summary-display" style="font-size: 13px; line-height: 1.6; color: var(--text-secondary);"></div>
+                </div>
+                <div id="tab-lineage" class="investigation-tab-content" style="display: none;">
+                    <div id="process-tree-display" style="padding: 10px;"></div>
+                </div>
+                <div id="tab-timeline" class="investigation-tab-content" style="display: none;">
+                    <div id="timeline-display"></div>
+                </div>
+                <div id="tab-evidence" class="investigation-tab-content" style="display: none;">
+                    <pre id="raw-evidence-display" style="font-size: 11px; color: var(--text-muted); background: var(--bg-hover); padding: 12px; border-radius: 4px; border: 1px solid var(--border-color); overflow-x: auto;"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: INTELLIGENCE PANELS (3 columns) -->
+        <div class="col-i" style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="siem-panel">
+                <div class="panel-header"><span class="panel-title">Detection Intelligence</span></div>
+                <div class="panel-body" id="detection-logic-panel" style="font-size: 11px; line-height: 1.5; color: var(--text-secondary);"></div>
+            </div>
+            <div class="siem-panel">
+                <div class="panel-header"><span class="panel-title">Indicators of Compromise</span></div>
+                <div class="panel-body" style="padding: 12px;"><div id="ioc-panel-display" style="display: flex; flex-direction: column; gap: 8px;"></div></div>
+            </div>
+            <div class="siem-panel">
+                <div class="panel-header"><span class="panel-title">Investigation Notes</span></div>
+                <div class="panel-body" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div id="notes-display" style="max-height: 200px; overflow-y: auto;"></div>
+                    <button class="siem-btn btn-accent" style="width: 100%;" onclick="addNotePrompt()">Add Note</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── BEHAVIOR ANALYTICS PAGE ────────────────────────────────────────── -->
+<div id="behavior-analytics-page" class="dashboard-container">
+    <div class="siem-metric-strip">
+        <div class="siem-metric-card"><div class="metric-label">Total Users</div><div class="metric-value" id="bi-total-users">--</div></div>
+        <div class="siem-metric-card"><div class="metric-label">Cautious</div><div class="metric-value" id="bi-cautious" style="color: var(--accent-green)">--</div></div>
+        <div class="siem-metric-card"><div class="metric-label">Impulsive</div><div class="metric-value" id="bi-impulsive" style="color: var(--accent-yellow)">--</div></div>
+        <div class="siem-metric-card"><div class="metric-label">Negligent</div><div class="metric-value" id="bi-negligent" style="color: var(--accent-red)">--</div></div>
+    </div>
+
+    <div class="siem-search-container">
+        <svg class="siem-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="userLookupInput" class="siem-input" placeholder="User Lookup: Enter ID or Username..." onkeyup="filterUserInsights()">
+    </div>
+
+    <div class="siem-grid">
+        <div class="siem-panel" style="grid-column: span 5;">
+            <div class="panel-header"><span class="panel-title">Behavioral Distribution</span></div>
+            <div class="panel-body" style="display: flex; align-items: center; justify-content: center;"><div style="height: 300px; width: 100%;"><canvas id="bi-pie-chart"></canvas></div></div>
+        </div>
+        <div class="siem-panel" style="grid-column: span 7;">
+            <div class="panel-header"><span class="panel-title">Active Risk Profiles</span></div>
+            <div class="panel-body" style="padding:0; max-height: 500px; overflow-y: auto;">
+                <table class="siem-table">
+                    <thead><tr><th>User Identifier</th><th>Risk Profile</th><th>Risk Score</th><th>Last Activity</th><th>Intelligence</th></tr></thead>
+                    <tbody id="user-insights-table"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- USER PROFILE INTELLIGENCE MODAL -->
+<div id="userProfileModal" class="siem-modal-overlay" onclick="closeProfileModal()">
+    <div class="siem-modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 style="margin:0; font-size: 16px; font-weight: 800; color: var(--text-primary);">USER INTELLIGENCE PROFILE: <span id="modal-user-id" style="color: var(--accent-blue)">--</span></h3>
+            <button class="siem-btn" onclick="closeProfileModal()">CLOSE</button>
+        </div>
+        <div class="modal-body">
+            <div class="profile-stats-grid">
+                <div class="profile-stat-card"><div class="metric-label">Profile</div><div class="metric-value" id="modal-profile" style="font-size: 18px; color: var(--accent-blue)">--</div></div>
+                <div class="profile-stat-card"><div class="metric-label">Total Events</div><div class="metric-value" id="modal-total-events" style="font-size: 18px;">--</div></div>
+                <div class="profile-stat-card"><div class="metric-label">Warnings Ignored</div><div class="metric-value" id="modal-ignored" style="font-size: 18px; color: var(--accent-red)">--</div></div>
+                <div class="profile-stat-card"><div class="metric-label">Safe vs Risky</div><div class="metric-value" id="modal-ratio" style="font-size: 18px; color: var(--accent-green)">--</div></div>
+            </div>
+            
+            <div class="siem-panel">
+                <div class="panel-header"><span class="panel-title">Activity History & URLs Visited</span></div>
+                <div class="panel-body" style="padding: 0;">
+                    <table class="siem-table">
+                        <thead><tr><th>Timestamp</th><th>Event Type</th><th>URL / Action</th><th>Risk Score</th><th>Verdict</th></tr></thead>
+                        <tbody id="modal-history-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    
+    let timelineChart = null;
+    let severityChart = null;
+    let biPieChart = null;
+    let currentIncidentId = null;
+
+    // ── NAVIGATION ENGINE ──────────────────────────────────────────────────
+    function hideAllPages() { ['threat-overview-page', 'structured-incidents-page', 'behavior-analytics-page'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; }); }
+    function showThreatOverview() { 
+        hideAllPages(); 
+        document.getElementById('threat-overview-page').style.display = 'block'; 
+        document.getElementById('global-page-title').textContent = 'Threat Overview';
+        updateDashboardStats(); 
+    }
+    function showStructuredIncidents() { 
+        hideAllPages(); 
+        document.getElementById('structured-incidents-page').style.display = 'block'; 
+        document.getElementById('global-page-title').textContent = 'Incident Investigation L2';
+        loadIncidentQueue(); 
+    }
+    function showBehaviorPanel() { 
+        hideAllPages(); 
+        document.getElementById('behavior-analytics-page').style.display = 'block'; 
+        document.getElementById('global-page-title').textContent = 'Behavior Intelligence';
+        loadBehaviorData(); 
+    }
+
+    // ── THREAT OVERVIEW LOGIC ──────────────────────────────────────────────
+    async function updateDashboardStats() {
+        try {
+            const res = await fetch('/api/dashboard/stats'); const data = await res.json();
+            if (data.status === 'success') {
+                const s = data.stats;
+                updateElement('totalLogs', s.total_logs);
+                updateElement('activeAlerts', s.active_alerts);
+                updateElement('falsePositives', s.false_positives);
+                updateElement('openIncidents', s.open_incidents);
+                updateElement('resolvedIncidents', s.resolved_incidents);
+                updateElement('agentCount', s.active_agents || 0);
+                
+                // Security Posture
+                const threatScore = data.threat_score || 0;
+                const accuracy = data.detection_accuracy || 0;
+                updateElement('stat-threat-score', threatScore + '%');
+                updateElement('stat-accuracy', accuracy + '%');
+                document.getElementById('bar-threat-score').style.width = threatScore + '%';
+                document.getElementById('bar-accuracy').style.width = accuracy + '%';
+
+                renderTimelineChart(data.logs_per_hour || {});
+                renderMitreTacticMap(data.mitre_counts || {});
+                renderAlertTable(data.recent_malicious || []);
+                renderSeverityChart(data.severity_breakdown || {});
+                renderAgentStatus(data.agents || []);
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    function renderAgentStatus(agents) {
+        const body = document.getElementById('agent-status-body'); if (!body) return;
+        body.innerHTML = agents.map(a => `
+            <tr>
+                <td><strong>${a.hostname || a.agent_id}</strong></td>
+                <td><span class="status-dot status-${a.status}"></span>${a.status.toUpperCase()}</td>
+                <td>${a.logs_sent}</td>
+            </tr>
+        `).join('');
+    }
+
+    function updateElement(id, val) { const el = document.getElementById(id); if (el) el.textContent = val !== undefined ? val : '--'; }
+
+    function renderTimelineChart(data) {
+        const ctx = document.getElementById('timelineChart'); if (!ctx) return;
+        const labels = Object.keys(data).sort(); const values = labels.map(l => data[l]);
+        if (timelineChart) { timelineChart.data.labels = labels.map(l => l.split(' ')[1] || l); timelineChart.data.datasets[0].data = values; timelineChart.update(); return; }
+        timelineChart = new Chart(ctx, { type: 'line', data: { labels: labels.map(l => l.split(' ')[1] || l), datasets: [{ label: 'Alerts', data: values, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 2, fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 9 } } }, y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { font: { size: 9 } } } } } });
+    }
+
+    function renderSeverityChart(dist) {
+        const ctx = document.getElementById('severityPieChart'); if (!ctx) return;
+        const labels = Object.keys(dist); const values = Object.values(dist);
+        if (severityChart) { severityChart.data.labels = labels; severityChart.data.datasets[0].data = values; severityChart.update(); return; }
+        severityChart = new Chart(ctx, { type: 'doughnut', data: { labels: labels, datasets: [{ data: values, backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } } }, cutout: '70%' } });
+    }
+
+    function renderMitreTacticMap(counts) {
+        const list = document.getElementById('mitreTacticSummary'); if (!list) return;
+        const tactics = ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery"];
+        list.innerHTML = tactics.map(t => `<div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid var(--border-color);"><span>${t}</span><span style="font-weight:700; color:var(--accent-blue)">${counts[t] || 0}</span></div>`).join('');
+    }
+
+    function renderAlertTable(events) {
+        const body = document.getElementById('siemAlertBody'); if (!body) return;
+        body.innerHTML = events.slice(0, 10).map(ev => `<tr><td>${ev.timestamp.split(' ')[1] || ev.timestamp}</td><td>${ev.host || 'Endpoint-01'}</td><td><strong>${ev.message}</strong></td><td><span class="siem-badge badge-${(ev.status || 'Normal').toLowerCase()}">${ev.status}</span></td><td>${ev.mitre_tactic || '--'}</td><td><button class="siem-btn" style="padding: 4px 8px; font-size: 9px;" onclick="investigateLog(${ev.id})">TRIAGE</button></td></tr>`).join('');
+    }
+
+    async function performAction(action, params = {}, successMsg = "Action completed") {
+        if (!currentIncidentId) return;
+        try {
+            const res = await fetch(`/api/incidents/${currentIncidentId}/action`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ action, params })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showToast(successMsg, "success");
+                loadIncidentDetails(currentIncidentId); // Refresh UI and timeline
+                return data;
+            } else {
+                showToast(data.message || "Action failed", "error");
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("Error connecting to server", "error");
+        }
+    }
+
+    async function performAction(action, params = {}, successMsg = "Action completed") {
+        if (!currentIncidentId) return;
+        try {
+            const res = await fetch(`/api/incidents/${currentIncidentId}/action`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ action, params })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showToast(successMsg, "success");
+                loadIncidentDetails(currentIncidentId); // Refresh UI and timeline
+                return data;
+            } else {
+                showToast(data.message || "Action failed", "error");
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("Error connecting to server", "error");
+        }
+    }
+
+    function investigateLog(id) { window.location.hash = '#structured-incidents'; showStructuredIncidents(); }
+
+    // ── INCIDENT INVESTIGATION LOGIC ──────────────────────────────────────
+    async function loadIncidentQueue() {
+        try {
+            const res = await fetch('/api/incidents'); const data = await res.json();
+            if (data.status === 'success') {
+                const list = document.getElementById('incident-queue-list');
+                const activeIncidents = data.incidents.filter(inc => inc.status !== 'Resolved');
+                
+                if (activeIncidents.length === 0) {
+                    list.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">No active incidents.</div>';
+                    document.getElementById('queue-count').textContent = '0';
+                    return;
+                }
+
+                list.innerHTML = activeIncidents.map(inc => `
+                    <div class="queue-item ${currentIncidentId == inc.id ? 'active' : ''}" onclick="loadIncidentDetails(${inc.id})">
+                        <div class="queue-item-id">
+                            <span>INC-${inc.id}</span>
+                            <span class="siem-badge badge-${inc.severity.toLowerCase()}">${inc.severity}</span>
+                        </div>
+                        <div class="queue-item-title">${inc.title}</div>
+                        <div class="queue-item-meta">${inc.status} · ${inc.owner || 'Unassigned'}</div>
+                    </div>
+                `).join('');
+                document.getElementById('queue-count').textContent = activeIncidents.length;
+                if (!currentIncidentId && activeIncidents.length > 0) loadIncidentDetails(activeIncidents[0].id);
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function loadIncidentDetails(id) {
+        currentIncidentId = id;
+        document.querySelectorAll('.queue-item').forEach(item => item.classList.remove('active'));
+        const activeItem = Array.from(document.querySelectorAll('.queue-item')).find(item => item.innerHTML.includes('INC-' + id));
+        if (activeItem) activeItem.classList.add('active');
+
+        try {
+            const res = await fetch(`/api/incidents/${id}`); const data = await res.json();
+            if (data.status === 'success') {
+                const inc = data.data.incident;
+                updateElement('triage-incident-id', `INC-${inc.id}`);
+                updateElement('triage-status', inc.status);
+                updateElement('triage-confidence', `${Math.round((inc.confidence || 0.92) * 100)}%`);
+                updateElement('triage-assigned', inc.owner || 'Unassigned');
+                updateElement('triage-host', inc.host);
+                updateElement('triage-user', inc.user);
+                updateElement('triage-mitre', inc.mitre.length > 0 ? inc.mitre.map(m => `${m.id}: ${m.name}`).join(' | ') : '--');
+                
+                const summaryLines = inc.executive_summary.split('\n\n');
+                document.getElementById('triage-summary-display').innerHTML = summaryLines.map(line => `<div style="margin-bottom:16px;">${line.replace(/\n/g, '<br>')}</div>`).join('');
+
+                renderProcessTree(inc.process_tree);
+                renderTimeline(inc.timeline);
+                document.getElementById('raw-evidence-display').textContent = JSON.stringify(inc.raw_evidence, null, 2);
+                
+                document.getElementById('detection-logic-panel').innerHTML = `<div style="margin-bottom:10px"><strong>Source:</strong> ${inc.detection_logic || 'N/A'}</div><div style="margin-bottom:10px"><strong>Method:</strong> Behavioral + Signature Analysis</div><div><strong>Trigger:</strong> Detected malicious system commands via telemetry flow.</div>`;
+                
+                const iocList = document.getElementById('ioc-panel-display');
+                if (inc.iocs && inc.iocs.length > 0) iocList.innerHTML = inc.iocs.map(ioc => `<div style="background: var(--bg-hover); padding: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;"><div style="display:flex; flex-direction:column;"><span style="font-size:9px; font-weight:800; color:var(--accent-blue)">${ioc.type}</span><span style="font-size:11px; font-family:monospace;">${ioc.value}</span></div><span class="siem-badge badge-${(ioc.risk || 'Medium').toLowerCase()}">${ioc.risk}</span></div>`).join('');
+                else iocList.innerHTML = '<div style="font-size: 11px; color: var(--text-muted); text-align: center;">No indicators identified</div>';
+
+                const notesList = document.getElementById('notes-display');
+                notesList.innerHTML = data.notes.map(n => `<div style="background: var(--bg-hover); padding: 10px; border-radius: 4px; margin-bottom: 10px;"><div style="display:flex; justify-content:space-between; font-size:9px; font-weight:700; color:var(--text-muted); margin-bottom:4px;"><span>${n.author}</span><span>${n.created_at}</span></div><div style="font-size:11px; color:var(--text-secondary);">${n.note}</div></div>`).join('') || '<div style="font-size: 11px; color: var(--text-muted); text-align: center;">No notes yet.</div>';
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    function renderProcessTree(tree) {
+        const container = document.getElementById('process-tree-display');
+        if (!tree || !tree.name) { container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">No lineage data available</div>'; return; }
+        
+        function buildNode(node) {
+            const children = node.children && node.children.length > 0 
+                ? node.children.map(child => buildNode(child)).join('') 
+                : '';
+            
+            return `
+                <div class="tree-node">
+                    <div class="node-content">
+                        <div class="node-header">
+                            <span class="node-name">${node.name}</span>
+                            <span class="node-pid">PID: ${node.pid || 'N/A'}</span>
+                        </div>
+                        <span class="node-cmd">${node.command || 'N/A'}</span>
+                    </div>
+                    ${children}
+                </div>
+            `;
+        }
+        container.innerHTML = `<div style="padding: 10px;">${buildNode(tree)}</div>`;
+    }
+
+    function renderTimeline(timeline) {
+        const container = document.getElementById('timeline-display');
+        if (!timeline || timeline.length === 0) { container.innerHTML = 'No timeline available'; return; }
+        container.innerHTML = timeline.map(item => `<div style="border-left: 2px solid var(--accent-blue); padding: 0 0 16px 16px; position: relative;"><div style="font-size:10px; color:var(--text-muted); font-weight:700; margin-bottom:2px;">${item.timestamp}</div><div style="font-size:11px; font-weight:700; color:var(--text-primary);">${item.type}</div><div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">${item.description}</div></div>`).join('');
+    }
+
+    function switchInvestigationTab(tabId, btn) { document.querySelectorAll('.investigation-tab-content').forEach(c => c.style.display = 'none'); document.getElementById(tabId).style.display = 'block'; document.querySelectorAll('.siem-tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+
+    // ── BEHAVIOR LOGIC ──────────────────────────────────────────────────
+    let allBehaviorData = [];
+    async function loadBehaviorData() { 
+        try { 
+            const res = await fetch('/api/dataset/stats', { headers: { 'X-Admin-Key': 'ila-soc-admin' } }); 
+            const data = await res.json(); 
+            updateElement('bi-total-users', data.total_users); 
+            updateElement('bi-cautious', data.label_distribution?.cautious); 
+            updateElement('bi-impulsive', data.label_distribution?.impulsive); 
+            updateElement('bi-negligent', data.label_distribution?.negligent); 
+            
+            const ctx = document.getElementById('bi-pie-chart');
+            if (ctx) {
+                if (biPieChart) biPieChart.destroy();
+                biPieChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Cautious', 'Impulsive', 'Negligent'],
+                        datasets: [{
+                            data: [data.label_distribution?.cautious || 0, data.label_distribution?.impulsive || 0, data.label_distribution?.negligent || 0],
+                            backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                });
+            }
+            loadUserInsights(); 
+        } catch (e) { console.error(e); } 
+    }
+    
+    async function loadUserInsights() { 
+        try { 
+            const res = await fetch('/api/behavior/all-users'); 
+            allBehaviorData = await res.json(); 
+            renderUserTable(allBehaviorData);
+        } catch (e) { console.error(e); } 
+    }
+
+    function renderUserTable(data) {
+        const table = document.getElementById("user-insights-table"); if (!table) return; 
+        table.innerHTML = data.map(user => `
+            <tr>
+                <td><strong>${user.user_id}</strong></td>
+                <td><span class="siem-badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue)">${user.behavior_type}</span></td>
+                <td>${user.risk_score}%</td>
+                <td>${user.timestamp}</td>
+                <td><button class="siem-btn" style="padding: 4px 8px; font-size: 9px;" onclick="viewUserProfile('${user.user_id}')">VIEW INTELLIGENCE</button></td>
+            </tr>
+        `).join(''); 
+    }
+
+    async function viewUserProfile(userId) {
+        try {
+            const res = await fetch(`/api/behavior/user-profile/${userId}`);
+            const data = await res.json();
+            if (data.status === 'success') {
+                document.getElementById('modal-user-id').textContent = data.user_id;
+                document.getElementById('modal-profile').textContent = data.profile;
+                document.getElementById('modal-total-events').textContent = data.stats.total_events;
+                document.getElementById('modal-ignored').textContent = data.stats.warnings_dismissed;
+                document.getElementById('modal-ratio').textContent = `${data.stats.safe_visits} / ${data.stats.risky_visits}`;
+                
+                const historyTable = document.getElementById('modal-history-table');
+                historyTable.innerHTML = data.history.map(h => `
+                    <tr>
+                        <td style="font-size: 10px;">${h.timestamp.replace('T', ' ')}</td>
+                        <td><span class="siem-badge" style="font-size: 8px;">${h.event_type.replace(/_/g, ' ')}</span></td>
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; font-size: 10px;">${h.url}</td>
+                        <td><span style="color: ${h.risk_score > 0.7 ? 'var(--accent-red)' : 'var(--accent-green)'}">${Math.round(h.risk_score * 100)}%</span></td>
+                        <td><span class="siem-badge badge-${h.verdict.toLowerCase()}">${h.verdict}</span></td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('userProfileModal').style.display = 'flex';
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    function closeProfileModal() { document.getElementById('userProfileModal').style.display = 'none'; }
+
+    function filterUserInsights() {
+        const query = document.getElementById('userLookupInput').value.toLowerCase();
+        const filtered = allBehaviorData.filter(u => u.user_id.toLowerCase().includes(query) || u.behavior_type.toLowerCase().includes(query));
+        renderUserTable(filtered);
+    }
+
+    // ── ACTIONS ───────────────────────────────────────────────────────────
+    async function updateIncidentStatus(status) {
+        if (!currentIncidentId) return;
+        if (status === 'Resolved' && !confirm("Close this incident and mark as Resolved?")) return;
+        
+        try {
+            const res = await fetch(`/api/incidents/${currentIncidentId}/status`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ status: status })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showToast(`Incident status updated to ${status}`, "success");
+                if (status === 'Resolved') {
+                    loadIncidentQueue();
+                } else {
+                    loadIncidentDetails(currentIncidentId);
+                }
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function assignToMe() {
+        if (!currentIncidentId) return;
+        await performAction('assign_analyst', { analyst: '{{ user.username }}' }, "Incident assigned to you");
+        loadIncidentQueue();
+    }
+
+    async function escalateIncidentToL3() {
+        if (!currentIncidentId) return;
+        if (!confirm("Escalate this critical incident to L3 Senior Response Team?")) return;
+        
+        try {
+            const res = await fetch(`/api/incidents/${currentIncidentId}/escalate`, { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showToast("Incident escalated to L3. Senior team notified.", "success");
+                loadIncidentDetails(currentIncidentId);
+                loadIncidentQueue();
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function isolateHost() { 
+        if (!currentIncidentId) return; 
+        if (!confirm("CRITICAL: Isolate host from the network?")) return;
+        await performAction('isolate_host', {}, "Host isolated successfully");
+    }
+
+    async function killProcess() { 
+        if (!currentIncidentId) return; 
+        const pid = prompt("Enter PID to terminate (default 4421):") || "4421";
+        await performAction('kill_process', { pid: pid }, `Process (PID ${pid}) terminated successfully`);
+    }
+
+    async function quarantineFile() { 
+        if (!currentIncidentId) return; 
+        await performAction('quarantine_file', {}, "Artifact quarantined successfully");
+    }
+
+    async function triggerIOCSearch() { 
+        if (!currentIncidentId) return; 
+        showToast("Scanning enterprise context for IOCs...", "info");
+        const res = await performAction('ioc_search', {}, "IOC Search complete");
+        if (res) {
+            alert(`IOC Search Results:\n- 3 related IP matches found in historical logs\n- 1 similar process execution pattern on peer host\n- Domain reputation: Malicious (C2)`);
+        }
+    }
+
+    async function sendEmailAlert() { 
+        if (!currentIncidentId) return; 
+        await performAction('notify_team', {}, "Incident alert broadcasted to SOC team");
+    }
+
+    async function blockIP() {
+        if (!currentIncidentId) return;
+        const ip = prompt("Enter IP to block:");
+        if (ip) await performAction('block_ip', { ip: ip }, `IP ${ip} blocked at firewall`);
+    }
+
+    async function blockDomain() {
+        if (!currentIncidentId) return;
+        const domain = prompt("Enter Domain to blacklist:");
+        if (domain) await performAction('block_domain', { domain: domain }, `Domain ${domain} sinkholed`);
+    }
+
+    async function recommendResponse() {
+        if (!currentIncidentId) return;
+        showToast("AI Analyst generating recommendations...", "info");
+        setTimeout(() => {
+            alert("Strategic Recommendations:\n1. Revoke active OAuth tokens for affected user\n2. Trigger forced password reset on domain controller\n3. Deploy enhanced sysmon monitoring to entire subnet\n4. Re-image host if persistence is confirmed");
+        }, 1000);
+    }
+
+    async function addNotePrompt() { if (!currentIncidentId) return; const note = prompt("Enter investigation note:"); if (note) { try { await fetch(`/api/incidents/${currentIncidentId}/notes`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({note, author: '{{ user.username }}'}) }); loadIncidentDetails(currentIncidentId); } catch (e) { console.error(e); } } }
+    async function generatePDFReport() { const lbl = document.getElementById('pdfActionLabel'); lbl.textContent = 'GENERATING...'; try { const res = await fetch('/api/report/pdf'); const blob = await res.blob(); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `SOC-Report-${new Date().toISOString().split('T')[0]}.pdf`; document.body.appendChild(a); a.click(); a.remove(); } catch (e) { console.error(e); } finally { lbl.textContent = 'Export PDF Report'; } }
+    
+    async function resetIncidentQueue() {
+        if (!confirm("Are you sure you want to PERMANENTLY DELETE all incidents? This cannot be undone.")) return;
+        try {
+            const res = await fetch('/api/incidents/clear-all', { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showToast(data.message, 'success');
+                currentIncidentId = null;
+                loadIncidentQueue();
+                // Clear the detail display
+                updateElement('triage-incident-id', 'SELECT INCIDENT');
+                updateElement('triage-status', '--');
+                const list = document.getElementById('incident-queue-list');
+                if (list) list.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">Queue Empty</div>';
+            } else {
+                showToast(data.message, 'error');
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function clearAlertsQueue() {
+        if (!confirm("Are you sure you want to clear ALL alerts? This cannot be undone.")) return;
+        try {
+            const res = await fetch('/api/alerts/clear-all', { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showToast(data.message, 'success');
+                updateDashboardStats();
+            } else {
+                showToast(data.message, 'error');
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const path = window.location.pathname; const hash = window.location.hash;
+        if (path === '/incident-investigation' || hash === '#structured-incidents') showStructuredIncidents();
+        else if (hash === '#behavior-intelligence') showBehaviorPanel();
+        else showThreatOverview();
+        setInterval(() => { if (document.getElementById('threat-overview-page').style.display !== 'none') updateDashboardStats(); }, 30000);
+    });
+{% endblock %}

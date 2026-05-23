@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | ILA-SOC Security Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08), 0 0 20px rgba(59, 130, 246, 0.05);
+        }
+        .bg-animate {
+            background: linear-gradient(-45deg, #eff6ff, #f0f9ff, #e0f2fe, #f8fafc);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .input-transition { transition: all 0.2s ease; }
+        .input-transition:focus { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); }
+        .btn-hover { transition: all 0.3s ease; }
+        .btn-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2); }
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(10px); }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+        
+        .floating-icon { animation: float 6s ease-in-out infinite; }
+        .floating-icon-delayed { animation: float 7s ease-in-out 1s infinite; }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        #toast {
+            transition: opacity 0.3s, transform 0.3s;
+            opacity: 0;
+            transform: translateY(-20px) translateX(-50%);
+            pointer-events: none;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateY(0) translateX(-50%);
+        }
+    </style>
+</head>
+<body class="bg-animate min-h-screen flex items-center justify-center relative overflow-hidden text-slate-800">
+    
+    <!-- Background Elements -->
+    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 floating-icon"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-indigo-50 rounded-full mix-blend-multiply filter blur-3xl opacity-50 floating-icon-delayed"></div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-6 left-1/2 z-50 flex items-center p-4 mb-4 w-full max-w-sm rounded-lg shadow glass-card">
+        <div id="toast-icon" class="inline-flex flex-shrink-0 justify-center items-center w-8 h-8 rounded-lg"></div>
+        <div id="toast-message" class="ml-3 text-sm font-medium"></div>
+    </div>
+
+    <div class="container mx-auto px-4 flex flex-col md:flex-row items-center justify-center gap-12 z-10 relative">
+        <!-- Branding Panel -->
+        <div class="hidden md:flex flex-col max-w-md fade-in" style="animation-delay: 0.1s;">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                </div>
+                <h1 class="text-3xl font-bold tracking-tight text-slate-900">ILA-SOC</h1>
+            </div>
+            <h2 class="text-4xl font-extrabold text-slate-900 leading-tight mb-4">Secure access to<br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Security Operations Platform</span></h2>
+            <p class="text-lg text-slate-600 mb-8 leading-relaxed">Enterprise-grade threat detection, automated intelligence, and unified incident response in one platform.</p>
+            
+            <div class="space-y-4">
+                <div class="flex items-center gap-3 text-sm font-medium text-slate-700 bg-white/60 p-3 rounded-lg backdrop-blur-sm border border-slate-200/50">
+                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Real-time Threat Detection
+                </div>
+                <div class="flex items-center gap-3 text-sm font-medium text-slate-700 bg-white/60 p-3 rounded-lg backdrop-blur-sm border border-slate-200/50">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Automated ML Intelligence
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Card -->
+        <div class="w-full max-w-md glass-card rounded-2xl p-8 fade-in" style="animation-delay: 0.2s;">
+            <div class="text-center mb-8 md:hidden">
+                <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg mx-auto mb-4">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900">Sign in to ILA-SOC</h2>
+            </div>
+            <h2 class="hidden md:block text-2xl font-bold text-slate-900 mb-6 text-center">Sign In</h2>
+
+            <form id="loginForm" class="space-y-5">
+                <div>
+                    <label for="email" class="block text-sm font-semibold text-slate-700 mb-1">Work Email</label>
+                    <input type="email" id="email" class="input-transition w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="analyst@organization.com" required>
+                </div>
+                
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="password" class="block text-sm font-semibold text-slate-700">Password</label>
+                        <a href="#" onclick="showToast('info', 'Contact admin for password reset.')" class="text-xs font-medium text-blue-600 hover:text-blue-800 transition">Forgot password?</a>
+                    </div>
+                    <input type="password" id="password" class="input-transition w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="••••••••" required>
+                </div>
+
+                <div class="flex items-center">
+                    <input id="remember_me" type="checkbox" class="w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500">
+                    <label for="remember_me" class="ml-2 block text-sm text-slate-600 font-medium">Remember me for 30 days</label>
+                </div>
+
+                <button type="submit" id="loginBtn" class="btn-hover w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 relative">
+                    <span id="btnText">Sign In</span>
+                    <svg id="btnSpinner" class="hidden animate-spin h-5 w-5 text-white absolute" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </form>
+
+            <div class="mt-6 flex items-center justify-between">
+                <span class="w-1/5 border-b border-slate-200 lg:w-1/4"></span>
+                <span class="text-xs text-center text-slate-500 uppercase font-semibold">Or continue with</span>
+                <span class="w-1/5 border-b border-slate-200 lg:w-1/4"></span>
+            </div>
+
+            <div class="mt-6 flex justify-center">
+                <div id="g_id_onload"
+                     data-client_id="{{ google_client_id }}"
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="rectangular"
+                     data-theme="outline"
+                     data-text="signin_with"
+                     data-size="large"
+                     data-logo_alignment="left">
+                </div>
+            </div>
+
+            <p class="mt-8 text-center text-sm text-slate-600">
+                Don't have an account? 
+                <a href="/register" class="font-semibold text-blue-600 hover:text-blue-800 transition">Request access</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function showToast(type, message) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-message');
+            
+            toast.className = 'fixed top-6 left-1/2 z-50 flex items-center p-4 mb-4 w-full max-w-sm rounded-lg shadow glass-card';
+            
+            if (type === 'success') {
+                icon.className = 'inline-flex flex-shrink-0 justify-center items-center w-8 h-8 text-green-500 bg-green-100 rounded-lg';
+                icon.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>';
+            } else if (type === 'error') {
+                icon.className = 'inline-flex flex-shrink-0 justify-center items-center w-8 h-8 text-red-500 bg-red-100 rounded-lg';
+                icon.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>';
+            } else {
+                icon.className = 'inline-flex flex-shrink-0 justify-center items-center w-8 h-8 text-blue-500 bg-blue-100 rounded-lg';
+                icon.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>';
+            }
+            
+            msg.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function toggleLoading(isLoading) {
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const btn = document.getElementById('loginBtn');
+            
+            if (isLoading) {
+                btnText.classList.add('hidden');
+                btnSpinner.classList.remove('hidden');
+                btn.disabled = true;
+                btn.classList.add('opacity-80');
+            } else {
+                btnText.classList.remove('hidden');
+                btnSpinner.classList.add('hidden');
+                btn.disabled = false;
+                btn.classList.remove('opacity-80');
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            toggleLoading(true);
+            
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('success', 'Authentication successful. Redirecting...');
+                    setTimeout(() => window.location.href = '/', 800);
+                } else {
+                    showToast('error', data.message || 'Login failed');
+                    toggleLoading(false);
+                }
+            } catch (err) {
+                showToast('error', 'Network error occurred');
+                toggleLoading(false);
+            }
+        });
+
+        async function handleCredentialResponse(response) {
+            try {
+                const res = await fetch('/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credential: response.credential })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast('success', 'Google sign-in successful. Redirecting...');
+                    setTimeout(() => window.location.href = '/', 800);
+                } else {
+                    showToast('error', data.message || 'Google sign-in failed');
+                }
+            } catch (err) {
+                showToast('error', 'Network error occurred');
+            }
+        }
+    </script>
+</body>
+</html>

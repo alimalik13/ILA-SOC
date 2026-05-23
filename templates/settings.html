@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+{% block page_title %}System Settings{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 24px;
+    }
+    
+    .settings-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+    }
+    
+    .settings-section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .settings-section-title svg {
+        width: 20px;
+        height: 20px;
+        color: var(--accent-blue);
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group:last-child {
+        margin-bottom: 0;
+    }
+    
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+    
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 12px 16px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: all 0.15s;
+    }
+    
+    .form-group input:focus, .form-group select:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .status-badge.configured {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--accent-green);
+    }
+    
+    .status-badge.not-configured {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--accent-red);
+    }
+    
+    .user-list {
+        margin-top: 16px;
+    }
+    
+    .user-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .user-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .user-item-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .user-item-avatar {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .user-item-details {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .user-item-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .user-item-role {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+    
+    .user-item-meta {
+        text-align: right;
+    }
+    
+    .user-item-last-login {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    
+    .threshold-slider {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 8px;
+    }
+    
+    .threshold-slider input[type="range"] {
+        flex: 1;
+        height: 6px;
+        background: var(--border-color);
+        border-radius: 3px;
+        appearance: none;
+        cursor: pointer;
+    }
+    
+    .threshold-slider input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        background: var(--accent-blue);
+        border-radius: 50%;
+        cursor: pointer;
+    }
+    
+    .threshold-value {
+        min-width: 50px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .warning-box {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .warning-box svg {
+        width: 20px;
+        height: 20px;
+        color: var(--accent-yellow);
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    
+    .warning-box-content {
+        flex: 1;
+    }
+    
+    .warning-box-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--accent-yellow);
+        margin-bottom: 4px;
+    }
+    
+    .warning-box-text {
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-grid">
+    <div class="settings-section">
+        <h2 class="settings-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Change Password
+        </h2>
+        
+        <div class="warning-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <div class="warning-box-content">
+                <div class="warning-box-title">Security Notice</div>
+                <div class="warning-box-text">Change the default password immediately for production use.</div>
+            </div>
+        </div>
+        
+        <form id="passwordForm">
+            <div class="form-group">
+                <label>Current Password</label>
+                <input type="password" id="currentPassword" placeholder="Enter current password" required>
+            </div>
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" id="newPassword" placeholder="Enter new password" required>
+            </div>
+            <div class="form-group">
+                <label>Confirm New Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm new password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Password</button>
+        </form>
+    </div>
+    
+    <div class="settings-section">
+        <h2 class="settings-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+            </svg>
+            API Configuration
+        </h2>
+        
+        <div class="info-box" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 10px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; color: var(--accent-blue); flex-shrink: 0; margin-top: 2px;">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <span style="font-size: 13px; color: var(--text-secondary);">
+                For production, set API keys via environment variables (VT_API_KEY, AGENT_API_KEY). Keys set below are stored in the database and override environment variables.
+            </span>
+        </div>
+        
+        <div class="form-group">
+            <label>VirusTotal API Key</label>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <input type="password" id="vtApiKey" placeholder="{% if vt_configured %}Key configured (enter new to update){% else %}Enter VirusTotal API key{% endif %}">
+                <button type="button" class="btn btn-secondary" onclick="saveApiKey('virustotal')">Save</button>
+                <span class="status-badge {% if vt_configured %}configured{% else %}not-configured{% endif %}" id="vtStatus">
+                    {% if vt_configured %}Configured{% else %}Not Set{% endif %}
+                </span>
+            </div>
+            <small style="display: block; margin-top: 8px; color: var(--text-muted); font-size: 12px;">
+                Used for IP/URL threat intelligence lookups
+            </small>
+        </div>
+        
+        <div class="form-group">
+            <label>Agent API Key</label>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <input type="password" id="agentApiKey" placeholder="{% if agent_key_configured %}Key configured (enter new to update){% else %}Enter Agent API key{% endif %}">
+                <button type="button" class="btn btn-secondary" onclick="saveApiKey('agent')">Save</button>
+                <span class="status-badge {% if agent_key_configured %}configured{% else %}not-configured{% endif %}" id="agentStatus">
+                    {% if agent_key_configured %}Configured{% else %}Not Set{% endif %}
+                </span>
+            </div>
+            <small style="display: block; margin-top: 8px; color: var(--text-muted); font-size: 12px;">
+                Required for log collection agents to authenticate
+            </small>
+        </div>
+    </div>
+    
+    <div class="settings-section">
+        <h2 class="settings-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            Alert Thresholds
+        </h2>
+        
+        <div class="form-group">
+            <label>Malicious Alert Confidence Threshold</label>
+            <div class="threshold-slider">
+                <input type="range" id="maliciousThreshold" min="50" max="100" value="{{ settings.get('threshold_malicious', {}).get('value', '80') }}">
+                <span class="threshold-value" id="maliciousValue">{{ settings.get('threshold_malicious', {}).get('value', '80') }}%</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Suspicious Alert Confidence Threshold</label>
+            <div class="threshold-slider">
+                <input type="range" id="suspiciousThreshold" min="30" max="90" value="{{ settings.get('threshold_suspicious', {}).get('value', '60') }}">
+                <span class="threshold-value" id="suspiciousValue">{{ settings.get('threshold_suspicious', {}).get('value', '60') }}%</span>
+            </div>
+        </div>
+        
+        <button class="btn btn-primary" onclick="saveThresholds()">Save Thresholds</button>
+    </div>
+    
+    <div class="settings-section">
+        <h2 class="settings-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            User Management
+        </h2>
+        
+        <div class="user-list">
+            {% for u in users %}
+            <div class="user-item">
+                <div class="user-item-left">
+                    <div class="user-item-avatar">{{ u.username[0]|upper }}</div>
+                    <div class="user-item-details">
+                        <span class="user-item-name">{{ u.username }}</span>
+                        <span class="user-item-role">{{ u.role|capitalize }}</span>
+                    </div>
+                </div>
+                <div class="user-item-meta">
+                    <span class="user-item-last-login">
+                        {% if u.last_login %}Last login: {{ u.last_login }}{% else %}Never logged in{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 24px; color: var(--text-muted);">
+                No users found
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (newPassword !== confirmPassword) {
+        showToast('Passwords do not match', 'error');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        showToast('Password must be at least 6 characters', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/settings/password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            showToast('Password changed successfully', 'success');
+            document.getElementById('passwordForm').reset();
+        } else {
+            showToast(data.message || 'Failed to change password', 'error');
+        }
+    } catch (err) {
+        showToast('Error changing password', 'error');
+    }
+});
+
+document.getElementById('maliciousThreshold').addEventListener('input', function() {
+    document.getElementById('maliciousValue').textContent = this.value + '%';
+});
+
+document.getElementById('suspiciousThreshold').addEventListener('input', function() {
+    document.getElementById('suspiciousValue').textContent = this.value + '%';
+});
+
+async function saveThresholds() {
+    const malicious = document.getElementById('maliciousThreshold').value;
+    const suspicious = document.getElementById('suspiciousThreshold').value;
+    
+    try {
+        await fetch('/api/settings/threshold', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'malicious', value: malicious })
+        });
+        
+        await fetch('/api/settings/threshold', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'suspicious', value: suspicious })
+        });
+        
+        showToast('Thresholds saved successfully', 'success');
+    } catch (err) {
+        showToast('Error saving thresholds', 'error');
+    }
+}
+
+async function saveApiKey(keyType) {
+    let inputId = keyType === 'virustotal' ? 'vtApiKey' : 'agentApiKey';
+    let statusId = keyType === 'virustotal' ? 'vtStatus' : 'agentStatus';
+    let value = document.getElementById(inputId).value;
+    
+    if (!value || value.trim() === '') {
+        showToast('Please enter an API key', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/settings/api-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key_type: keyType, value: value.trim() })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            document.getElementById(inputId).value = '';
+            document.getElementById(inputId).placeholder = 'Key configured (enter new to update)';
+            const statusEl = document.getElementById(statusId);
+            statusEl.textContent = 'Configured';
+            statusEl.className = 'status-badge configured';
+        } else {
+            showToast(data.message || 'Failed to save API key', 'error');
+        }
+    } catch (err) {
+        showToast('Error saving API key', 'error');
+    }
+}
+{% endblock %}

@@ -1,0 +1,108 @@
+================================================================================
+                                   ILA-SOC
+                              Project Structure
+================================================================================
+
+ILA-SOC-Server/
+│
+├── backend/                        # Main backend/database package
+│   ├── __init__.py                 # Package declaration
+│   ├── alerts_db.py                # Operations for triage queue alerts
+│   ├── data_manager.py             # Config and API key management utilities
+│   ├── database.py                 # Core SQLite DB schema initialization & migrations
+│   ├── incident_db.py              # Operations for promoted SOC incidents
+│   ├── notifications.py            # SMTP mailing services for alerts/escalations
+│   ├── pdf_report.py               # Compilation of executive PDF summaries (FPDF2)
+│   └── vt_integration.py           # VirusTotal API analysis & caching layer
+│
+├── behavior_dataset/               # User behaviour ML resources
+│   ├── behavior_classifier.py      # Random Forest classifier predicting user archetypes
+│   ├── dataset_builder.py          # Formats raw features into classification matrices
+│   ├── generate_synthetic.py       # Simulates synthetic user behavior for research
+│   └── behavior_model.pkl          # Serialized Random Forest behavior classifier model
+│
+├── behavior_tracker/               # WAL-mode database logs
+│   ├── __init__.py                 # Module initializer
+│   ├── tracker.py                  # Core behavior logging class
+│   └── behavior_data.db            # SQLite database store for behavior events
+│
+├── ml/                             # Threat classification packages
+│   ├── __init__.py                 # Package declaration
+│   ├── contextual_features.py      # Extracts contextual metadata flags (LolBins, Paths)
+│   ├── ml_flow_classifier.py       # XGBoost network flow classification module
+│   └── ml_text_classifier.py       # Ensemble log classifier routing (TF-IDF + Anomaly + XGB)
+│
+├── models/                         # Serialized pre-trained ML model pickle files (.pkl)
+│   ├── anomaly_detector.pkl        # Isolation Forest zero-day detector
+│   ├── context_scaler.pkl          # Scaler for ensemble contextual parameters
+│   ├── flow_classifier_enhanced.pkl # Enhanced network flow classification model
+│   ├── flow_features_enhanced.pkl  # Extracted network features list
+│   ├── flow_labels_enhanced.pkl    # Threat label mappings
+│   ├── flow_scaler_enhanced.pkl    # Scaler for network packets and byte counts
+│   ├── rf_calibrated.pkl           # Calibrated Random Forest text classifier
+│   ├── text_model_enhanced.pkl     # Enhanced TF-IDF text classifier (SMOTE balanced)
+│   ├── text_model_legacy.pkl       # Fallback 32-feature text classifier model
+│   ├── text_model_tfidf.pkl        # Fallback standard TF-IDF text model
+│   ├── text_scaler_legacy.pkl      # Scaler for 32-feature legacy model
+│   ├── tfidf_vectorizer.pkl        # Vectorizer for fallback TF-IDF model
+│   ├── tfidf_vectorizer_enhanced.pkl # Vectorizer for enhanced TF-IDF model
+│   ├── xgb_calibrated.pkl          # Calibrated XGBoost text classifier
+│   └── xgboost_text_model.pkl      # Standard XGBoost text classifier
+│
+├── nextgen_sysmon_pipeline/        # Shadow mode passive analytics pipeline
+│   ├── __init__.py                 # Module initialization
+│   ├── feature_extractor.py        # Translates raw Sysmon events to feature matrices
+│   ├── process_tracker.py          # Stateful in-memory execution tree engine
+│   ├── shadow_mode_runner.py       # Intercepts production logs for parallel check
+│   └── structured_shadow_logger.py # Silently logs shadow verdicts to separate database
+│
+├── nudge_engine/                   # Adaptive security warning nudging engine
+│   ├── __init__.py                 # Module initializer
+│   └── nudge_engine.py             # Maps profiled user archetypes to corresponding nudges
+│
+├── scratch/                        # Temporary sandbox directory (Clean/Empty)
+│
+├── static/                         # Static assets directory (Clean/Empty)
+│
+├── templates/                      # Jinja2 HTML dashboard interfaces
+│   ├── base.html                   # Master template (common navigation and styling)
+│   ├── login.html                  # OAuth and local login screen
+│   ├── register.html               # New account registration page
+│   ├── soc_dashboard.html          # Unified Analyst Incident Dashboard (Timeline, Process Tree)
+│   ├── agents.html                 # Registered network clients list
+│   ├── analytics.html              # Threat distribution charts and model status
+│   ├── dashboard.html              # General metrics dashboard
+│   ├── logs.html                   # Historical real-time log tables
+│   ├── settings.html               # API key configurations and database control page
+│   ├── upload.html                 # Custom log parser upload page
+│   └── url_intelligence.html       # Web URL risk scoring page
+│
+├── uploads/                        # Temporary operational folders for log storage
+│   ├── raw/                        # Ingested JSON/CSV logs from agents
+│   └── reports/                    # Generated PDF incident reports
+│
+├── url_intelligence/               # Suspicious link analysis engine
+│   ├── __init__.py                 # Package declaration
+│   ├── feature_extractor.py        # Computes alphanumeric ratios, entropy, brand checks
+│   ├── ml_model.py                 # Predicts risk score for query links
+│   └── risk_engine.py              # Blends ML model outputs with signature overrides
+│
+├── user_profiler/                  # User classification module
+│   ├── __init__.py                 # Package declaration
+│   ├── feature_extractor.py        # Compiles warning bypass frequency and session duration
+│   └── profiler.py                 # Evaluates behavior history using behavior classifier
+│
+├── .dockerignore                   # Rules for skipping files during Docker builds
+├── .gitignore                      # Excluded git tracking directories and credentials
+├── analyst_audit_logger.py         # Logs analyst operations (assign, escalate, notes)
+├── docker-compose.yml              # Container network layout and database volume map
+├── Dockerfile                      # Python slim image build definition
+├── env.example                     # Sample template for .env files
+├── incident_lifecycle_tracker.py   # State machine for incident phase transitions
+├── incident_workflow_manager.py    # Implements action workflows (triage, assign, resolve)
+├── requirements.txt                # Pinned production-ready pip package requirements
+├── server.py                       # Core Flask/SocketIO server implementation
+├── sla_tracking_engine.py          # SLA deadline monitoring for open incidents
+├── DETAIL_OF_PROJECT.txt           # Detailed overview and architecture documentation
+└── HOW_TO_RUN.txt                  # Full local installation and run setup guide
+================================================================================

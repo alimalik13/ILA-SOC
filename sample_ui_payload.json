@@ -1,0 +1,136 @@
+{
+  "ui_summary_card": {
+    "title": "Structured Incident: INC-0B394CBF",
+    "severity_badge": "<span class=\"badge badge-danger\">CRITICAL</span>",
+    "host": "WS-01",
+    "user": "bob",
+    "time_window": "10:02:00",
+    "escalation_warnings": [
+      "Macro Execution Followed By Network Connection"
+    ],
+    "risk_score": 95,
+    "confidence": "HIGH (98%)",
+    "mitre_tactics": [
+      "T1059.001 - PowerShell",
+      "T1071 - Application Layer Protocol"
+    ],
+    "behavioral_triggers": [
+      "Office document spawned script interpreter",
+      "Encoded PowerShell detected",
+      "External network communication",
+      "Process depth anomaly"
+    ]
+  },
+  "ui_process_lineage": [
+    {
+      "process_guid": "guid1",
+      "image": "explorer.exe",
+      "command_line": "explorer.exe",
+      "depth": 0,
+      "icon": "fa-cogs",
+      "color_class": "text-secondary",
+      "padding_px": 0
+    },
+    {
+      "process_guid": "guid2",
+      "image": "winword.exe",
+      "command_line": "winword.exe invoice.docm",
+      "depth": 1,
+      "icon": "fa-file-word",
+      "color_class": "text-primary",
+      "padding_px": 20
+    },
+    {
+      "process_guid": "guid3",
+      "image": "powershell.exe",
+      "command_line": "powershell.exe -enc SUVY...",
+      "depth": 2,
+      "icon": "fa-terminal",
+      "color_class": "text-danger",
+      "padding_px": 40
+    }
+  ],
+  "ui_chronological_timeline": [
+    {
+      "timestamp": "10:02:00",
+      "title": "Process Execution",
+      "description": "Process Created: powershell.exe (powershell.exe -enc SUVY...)",
+      "icon": "fa-play-circle",
+      "color_class": "text-primary",
+      "is_alert": false,
+      "context": []
+    },
+    {
+      "timestamp": "10:02:00",
+      "title": "Behavioral Alert",
+      "description": "Rule Triggered: Office_Macro_Suspicious_Spawn",
+      "icon": "fa-exclamation-triangle",
+      "color_class": "text-danger",
+      "is_alert": true,
+      "context": []
+    },
+    {
+      "timestamp": "10:02:05",
+      "title": "Network Activity",
+      "description": "Network Connection: powershell.exe connected to 185.15.2.1:4444",
+      "icon": "fa-network-wired",
+      "color_class": "text-warning",
+      "is_alert": false,
+      "context": []
+    },
+    {
+      "timestamp": "10:02:05",
+      "title": "Behavioral Alert",
+      "description": "Rule Triggered: Suspicious_Network_Connection",
+      "icon": "fa-exclamation-triangle",
+      "color_class": "text-danger",
+      "is_alert": true,
+      "context": []
+    }
+  ],
+  "ui_contextual_intelligence": {
+    "user_role": "Standard User",
+    "baseline_trust_level": "Medium (50/100)",
+    "suppression_decisions": "Network connection not common for user profile. PowerShell execution by WINWORD is explicitly anomalous.",
+    "whitelist_matches": "None"
+  },
+  "ui_legacy_comparison": {
+    "legacy_verdict": "Suspicious Network Connection (Isolated Alert)",
+    "structured_verdict": "CRITICAL: Macro to PowerShell Execution (Correlated Incident)",
+    "missed_by_legacy": [
+      "WINWORD.EXE macro execution",
+      "Encoded PowerShell string"
+    ]
+  },
+  "d3_graph_data": {
+    "nodes": [
+      {
+        "id": "guid1",
+        "label": "explorer.exe",
+        "group": 0
+      },
+      {
+        "id": "guid2",
+        "label": "winword.exe",
+        "group": 0
+      },
+      {
+        "id": "guid3",
+        "label": "powershell.exe",
+        "group": 1
+      }
+    ],
+    "links": [
+      {
+        "source": "guid1",
+        "target": "guid2",
+        "value": 1
+      },
+      {
+        "source": "guid2",
+        "target": "guid3",
+        "value": 1
+      }
+    ]
+  }
+}

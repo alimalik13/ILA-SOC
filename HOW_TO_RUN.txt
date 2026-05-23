@@ -1,0 +1,122 @@
+================================================================================
+                                   ILA-SOC
+                              Setup & Run Guide
+================================================================================
+
+1. PYTHON VERSION REQUIRED
+--------------------------
+- Python 3.11.x or 3.12.x is recommended.
+- Minimum supported version: Python 3.9.
+
+2. VIRTUAL ENVIRONMENT SETUP
+----------------------------
+It is highly recommended to isolate dependencies inside a virtual environment:
+
+# For Windows (PowerShell):
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+
+# For macOS/Linux:
+python3 -m venv .venv
+source .venv/bin/activate
+
+3. DEPENDENCY INSTALLATION
+--------------------------
+Install required runtime packages from requirements.txt:
+
+pip install --upgrade pip
+pip install -r requirements.txt
+
+4. ENVIRONMENT VARIABLE SETUP
+-----------------------------
+Create a `.env` file in the root directory (you can copy the structure from `env.example`):
+
+SESSION_SECRET=your_session_secret_key_here
+PORT=5000
+FLASK_ENV=development
+GOOGLE_CLIENT_ID=your_google_oauth_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+SOC_L2_EMAIL=escalations_l2@yourdomain.com
+SOC_L3_EMAIL=escalations_l3@yourdomain.com
+
+5. DATABASE INITIALIZATION
+--------------------------
+The databases initialize automatically on Flask server boot. There is no manual sql 
+execution required. The server will:
+- Create `ila_soc.db` and set up optimization indices and tables.
+- Create `behavior_tracker/behavior_data.db` for user telemetry.
+- Create `nextgen_sysmon_pipeline/structured_feature_logs/structured_feature_vectors.db` for shadow logging.
+
+6. ML MODEL REQUIREMENTS
+------------------------
+Ensure the pre-trained pickeled models exist in the `models/` directory:
+- models/text_model_enhanced.pkl (Preferred TF-IDF model)
+- models/tfidf_vectorizer_enhanced.pkl (Vectorizer)
+- models/anomaly_detector.pkl (Isolation Forest anomaly detector)
+- models/text_model_tfidf.pkl
+- models/tfidf_vectorizer.pkl
+- models/text_model_legacy.pkl
+- models/text_scaler_legacy.pkl
+- models/xgboost_text_model.pkl
+- models/rf_calibrated.pkl
+- models/xgb_calibrated.pkl
+- models/context_scaler.pkl
+- models/flow_classifier_enhanced.pkl
+- models/flow_scaler_enhanced.pkl
+- models/flow_features_enhanced.pkl
+- models/flow_labels_enhanced.pkl
+
+If these models are missing, the server will default to rule-based logic.
+
+7. HOW TO START THE SERVER
+--------------------------
+Start the Flask/SocketIO server directly using Python:
+
+python server.py
+
+The console should display status checks showing loaded models (e.g. "[OK] Calibrated ensemble loaded...") and boot up Werkzeug:
+"Running on http://127.0.0.1:5000"
+
+8. DASHBOARD ACCESS URL
+-----------------------
+Open your web browser and navigate to:
+- Login Page: http://127.0.0.1:5000/login
+- Register Page: http://127.0.0.1:5000/register
+- Main SOC Dashboard: http://127.0.0.1:5000/dashboard (requires authentication)
+
+9. API ENDPOINT USAGE
+---------------------
+- Telemetry Ingest (requires API key authentication in headers):
+  POST /api/logs
+  Headers: X-API-Key: <your-agent-key>
+  Payload: {"timestamp": "2026-05-23T12:00:00", "message": {"EventID": 1, "CommandLine": "whoami"}}
+- Risk URL Prediction:
+  POST /api/predict
+  Payload: {"url": "http://suspicious-site.com"}
+
+10. SYSMON INTEGRATION SETUP
+----------------------------
+For endpoints (clients) running Windows Sysmon:
+1. Deploy Winlogbeat or custom Python agent on target endpoints.
+2. Configure targets to stream security event channel logs (specifically Sysmon provider) via POST requests to the ILA-SOC Server at:
+   http://<server-ip>:5000/api/logs
+3. Verify that incoming Sysmon logs show up live on the Alert Triage queue.
+
+11. COMMON TROUBLESHOOTING FIXES
+--------------------------------
+- SocketIO Werkzeug Error: "The Werkzeug web server is not designed to run in production."
+  Fix: Pass `allow_unsafe_werkzeug=True` in `socketio.run` (already implemented as default in server.py).
+- SQLite Database Locked:
+  Fix: The database utilizes a 20s timeout and WAL mode inside the behavior tracker. If locks persist, ensure there are no concurrent raw database editors open.
+- Model Dimensions Mismatch:
+  Fix: Ensure the TF-IDF feature sizes match the calibrated models (6000 features).
+
+12. PRODUCTION DEPLOYMENT NOTES
+-------------------------------
+For production runs, do not use `python server.py`. Deploy via a WSGI server like Gunicorn or using the provided docker compose configurations:
+
+# Deploy using Docker Compose:
+docker-compose up --build -d
+
+This spins up the gunicorn workers listening on port 8080 and handles stateful database storage safely inside volumes.
+================================================================================

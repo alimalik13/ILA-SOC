@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Logs{% endblock %}
+{% block page_title %}Upload Log Files{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .upload-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .upload-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 40px;
+    }
+    
+    .upload-zone {
+        border: 2px dashed var(--border-color);
+        border-radius: 12px;
+        padding: 60px 40px;
+        text-align: center;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: var(--accent-blue);
+        background: rgba(59, 130, 246, 0.05);
+    }
+    
+    .upload-zone-icon {
+        width: 64px;
+        height: 64px;
+        background: var(--bg-secondary);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        color: var(--accent-blue);
+    }
+    
+    .upload-zone-icon svg {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .upload-zone-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+    
+    .upload-zone-subtitle {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+    }
+    
+    .upload-zone-formats {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .format-badge {
+        padding: 6px 12px;
+        background: var(--bg-hover);
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-family: monospace;
+    }
+    
+    .file-input {
+        display: none;
+    }
+    
+    .file-list {
+        margin-top: 24px;
+    }
+    
+    .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .file-item-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .file-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--bg-hover);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-cyan);
+    }
+    
+    .file-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .file-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+    
+    .file-size {
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    
+    .file-remove {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+    
+    .file-remove:hover {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--accent-red);
+    }
+    
+    .file-remove svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .upload-actions {
+        margin-top: 24px;
+        display: flex;
+        gap: 12px;
+    }
+    
+    .upload-progress {
+        margin-top: 24px;
+        display: none;
+    }
+    
+    .progress-bar {
+        height: 8px;
+        background: var(--border-color);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
+        border-radius: 4px;
+        transition: width 0.3s;
+    }
+    
+    .progress-text {
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        text-align: center;
+    }
+    
+    .upload-result {
+        margin-top: 24px;
+        padding: 20px;
+        border-radius: 8px;
+        display: none;
+    }
+    
+    .upload-result.success {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .upload-result.error {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    .result-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    
+    .result-title.success { color: var(--accent-green); }
+    .result-title.error { color: var(--accent-red); }
+    
+    .result-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-top: 16px;
+    }
+    
+    .result-stat {
+        text-align: center;
+    }
+    
+    .result-stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .result-stat-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="upload-card">
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="upload-zone" id="dropZone">
+                <div class="upload-zone-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </div>
+                <h3 class="upload-zone-title">Drop log files here</h3>
+                <p class="upload-zone-subtitle">or click to browse</p>
+                <div class="upload-zone-formats">
+                    <span class="format-badge">.txt</span>
+                    <span class="format-badge">.log</span>
+                    <span class="format-badge">.json</span>
+                    <span class="format-badge">.csv</span>
+                </div>
+                <input type="file" name="file" id="fileInput" class="file-input" accept=".txt,.log,.json,.csv" multiple>
+            </div>
+            
+            <div class="file-list" id="fileList"></div>
+            
+            <div class="upload-progress" id="uploadProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <p class="progress-text" id="progressText">Uploading...</p>
+            </div>
+            
+            <div class="upload-result" id="uploadResult">
+                <h3 class="result-title" id="resultTitle"></h3>
+                <p id="resultMessage"></p>
+                <div class="result-stats" id="resultStats"></div>
+            </div>
+            
+            <div class="upload-actions" id="uploadActions" style="display: none;">
+                <button type="submit" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Analyze Logs
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="clearFiles()">
+                    Clear Files
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const uploadActions = document.getElementById('uploadActions');
+const uploadForm = document.getElementById('uploadForm');
+const uploadProgress = document.getElementById('uploadProgress');
+const uploadResult = document.getElementById('uploadResult');
+
+let selectedFiles = [];
+
+dropZone.addEventListener('click', () => fileInput.click());
+
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+});
+
+fileInput.addEventListener('change', () => {
+    handleFiles(fileInput.files);
+});
+
+function handleFiles(files) {
+    for (const file of files) {
+        if (!selectedFiles.find(f => f.name === file.name)) {
+            selectedFiles.push(file);
+        }
+    }
+    renderFileList();
+}
+
+function renderFileList() {
+    fileList.innerHTML = selectedFiles.map((file, index) => `
+        <div class="file-item">
+            <div class="file-item-left">
+                <div class="file-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-size">${formatSize(file.size)}</div>
+                </div>
+            </div>
+            <button type="button" class="file-remove" onclick="removeFile(${index})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+    `).join('');
+    
+    uploadActions.style.display = selectedFiles.length > 0 ? 'flex' : 'none';
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    renderFileList();
+}
+
+function clearFiles() {
+    selectedFiles = [];
+    fileInput.value = '';
+    renderFileList();
+    uploadResult.style.display = 'none';
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    if (selectedFiles.length === 0) {
+        showToast('Please select files to upload', 'error');
+        return;
+    }
+    
+    uploadProgress.style.display = 'block';
+    uploadResult.style.display = 'none';
+    
+    for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const formData = new FormData();
+        formData.append('log_file', file);
+        
+        const progress = Math.round(((i + 0.5) / selectedFiles.length) * 100);
+        document.getElementById('progressFill').style.width = progress + '%';
+        document.getElementById('progressText').textContent = `Analyzing ${file.name}...`;
+        
+        try {
+            const response = await fetch('/upload_logs', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (i === selectedFiles.length - 1) {
+                document.getElementById('progressFill').style.width = '100%';
+                document.getElementById('progressText').textContent = 'Analysis complete!';
+                
+                setTimeout(() => {
+                    uploadProgress.style.display = 'none';
+                    showResult(data);
+                }, 500);
+            }
+        } catch (err) {
+            showToast('Error uploading ' + file.name, 'error');
+        }
+    }
+});
+
+function showResult(data) {
+    const result = document.getElementById('uploadResult');
+    const title = document.getElementById('resultTitle');
+    const message = document.getElementById('resultMessage');
+    const stats = document.getElementById('resultStats');
+    
+    if (data.status === 'success') {
+        result.className = 'upload-result success';
+        title.className = 'result-title success';
+        title.textContent = 'Analysis Complete';
+        message.textContent = data.message;
+        
+        const s = data.stats || {};
+        stats.innerHTML = `
+            <div class="result-stat">
+                <div class="result-stat-value">${s.total || 0}</div>
+                <div class="result-stat-label">Total Logs</div>
+            </div>
+            <div class="result-stat">
+                <div class="result-stat-value" style="color: var(--accent-red)">${s.malicious || 0}</div>
+                <div class="result-stat-label">Malicious</div>
+            </div>
+            <div class="result-stat">
+                <div class="result-stat-value" style="color: var(--accent-yellow)">${s.suspicious || 0}</div>
+                <div class="result-stat-label">Suspicious</div>
+            </div>
+            <div class="result-stat">
+                <div class="result-stat-value" style="color: var(--accent-green)">${s.normal || 0}</div>
+                <div class="result-stat-label">Normal</div>
+            </div>
+        `;
+    } else {
+        result.className = 'upload-result error';
+        title.className = 'result-title error';
+        title.textContent = 'Analysis Failed';
+        message.textContent = data.message || 'An error occurred';
+        stats.innerHTML = '';
+    }
+    
+    result.style.display = 'block';
+    clearFiles();
+}
+{% endblock %}

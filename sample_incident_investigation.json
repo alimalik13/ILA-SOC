@@ -1,0 +1,72 @@
+{
+  "incident_summary": {
+    "id": "INC-0B394CBF",
+    "severity": "CRITICAL",
+    "status": "OPEN",
+    "host": "WS-01",
+    "user": "bob",
+    "first_seen": "10:02:00",
+    "escalation_reasons": [
+      "Macro Execution Followed By Network Connection"
+    ]
+  },
+  "attack_chain_graph": {
+    "process_guid": "guid1",
+    "image": "explorer.exe",
+    "command_line": "explorer.exe",
+    "timestamp": "10:00:00",
+    "children": [
+      {
+        "process_guid": "guid2",
+        "image": "winword.exe",
+        "command_line": "winword.exe invoice.docm",
+        "timestamp": "10:01:00",
+        "children": [
+          {
+            "process_guid": "guid3",
+            "image": "powershell.exe",
+            "command_line": "powershell.exe -enc SUVY...",
+            "timestamp": "10:02:00",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "chronological_timeline": [
+    {
+      "timestamp": "10:02:00",
+      "type": "Raw Telemetry",
+      "event_id": "1",
+      "description": "Process Created: powershell.exe (powershell.exe -enc SUVY...)",
+      "guid": "guid3"
+    },
+    {
+      "timestamp": "10:02:00",
+      "type": "Structured Alert",
+      "severity": "HIGH",
+      "description": "Rule Triggered: Office_Macro_Suspicious_Spawn",
+      "context": [],
+      "guid": ""
+    },
+    {
+      "timestamp": "10:02:05",
+      "type": "Raw Telemetry",
+      "event_id": "3",
+      "description": "Network Connection: powershell.exe connected to 185.15.2.1:4444",
+      "guid": "guid3"
+    },
+    {
+      "timestamp": "10:02:05",
+      "type": "Structured Alert",
+      "severity": "HIGH",
+      "description": "Rule Triggered: Suspicious_Network_Connection",
+      "context": [],
+      "guid": ""
+    }
+  ],
+  "metrics": {
+    "total_alerts_collapsed": 2,
+    "total_raw_events": 2
+  }
+}

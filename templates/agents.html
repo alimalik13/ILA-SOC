@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Monitoring{% endblock %}
+{% block page_title %}Agent Monitoring{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .agents-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+    
+    .agents-stats {
+        display: flex;
+        gap: 16px;
+    }
+    
+    .agents-stat {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+    
+    .agents-stat-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+    
+    .agents-stat-dot.active {
+        background: var(--accent-green);
+    }
+    
+    .agents-stat-dot.inactive {
+        background: var(--accent-yellow);
+    }
+    
+    .agents-stat-dot.total {
+        background: var(--accent-blue);
+    }
+    
+    .agents-stat-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .agents-stat-label {
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+    
+    .agents-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 16px;
+    }
+    
+    .agent-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.15s;
+    }
+    
+    .agent-card:hover {
+        border-color: var(--accent-blue);
+    }
+    
+    .agent-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+    
+    .agent-card-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .agent-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+    }
+    
+    .agent-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .agent-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .agent-id {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: monospace;
+    }
+    
+    .agent-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .agent-status.active {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--accent-green);
+    }
+    
+    .agent-status.inactive {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--accent-yellow);
+    }
+    
+    .agent-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+    
+    .agent-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    
+    .agent-detail {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .agent-detail-label {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .agent-detail-value {
+        font-size: 13px;
+        color: var(--text-primary);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 24px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+    }
+    
+    .empty-state-icon {
+        width: 64px;
+        height: 64px;
+        background: var(--bg-secondary);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        color: var(--text-muted);
+    }
+    
+    .empty-state-icon svg {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .empty-state-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+    
+    .empty-state-text {
+        font-size: 14px;
+        color: var(--text-secondary);
+        max-width: 400px;
+        margin: 0 auto 24px;
+        line-height: 1.6;
+    }
+    
+    .code-block {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 13px;
+        color: var(--accent-cyan);
+        text-align: left;
+        max-width: 500px;
+        margin: 0 auto;
+        overflow-x: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="agents-header">
+    <div class="agents-stats" id="agentsStats">
+        <div class="agents-stat">
+            <span class="agents-stat-dot total"></span>
+            <span class="agents-stat-value" id="totalAgents">0</span>
+            <span class="agents-stat-label">Total</span>
+        </div>
+        <div class="agents-stat">
+            <span class="agents-stat-dot active"></span>
+            <span class="agents-stat-value" id="activeAgents">0</span>
+            <span class="agents-stat-label">Active</span>
+        </div>
+        <div class="agents-stat">
+            <span class="agents-stat-dot inactive"></span>
+            <span class="agents-stat-value" id="inactiveAgents">0</span>
+            <span class="agents-stat-label">Inactive</span>
+        </div>
+    </div>
+    
+    <button class="btn btn-secondary" onclick="refreshAgents()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Refresh
+    </button>
+</div>
+
+<div id="agentsContainer">
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+        </div>
+        <h3 class="empty-state-title">No Agents Connected</h3>
+        <p class="empty-state-text">
+            Deploy the ILA-SOC Agent on your Windows machines to start collecting and analyzing security logs in real-time.
+        </p>
+        <div class="code-block">
+            python ila_agent.py --server https://your-server-url
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+function refreshAgents() {
+    fetch('/api/agents')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalAgents').textContent = data.total;
+            document.getElementById('activeAgents').textContent = data.active;
+            document.getElementById('inactiveAgents').textContent = data.inactive;
+            
+            const container = document.getElementById('agentsContainer');
+            
+            if (data.total === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                <line x1="8" y1="21" x2="16" y2="21"/>
+                                <line x1="12" y1="17" x2="12" y2="21"/>
+                            </svg>
+                        </div>
+                        <h3 class="empty-state-title">No Agents Connected</h3>
+                        <p class="empty-state-text">
+                            Deploy the ILA-SOC Agent on your Windows machines to start collecting and analyzing security logs in real-time.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="agents-grid">';
+            
+            for (const [id, agent] of Object.entries(data.agents)) {
+                const isActive = agent.status === 'active';
+                html += `
+                    <div class="agent-card">
+                        <div class="agent-card-header">
+                            <div class="agent-card-title">
+                                <div class="agent-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                        <line x1="8" y1="21" x2="16" y2="21"/>
+                                        <line x1="12" y1="17" x2="12" y2="21"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="agent-name">${agent.hostname || 'Unknown Host'}</div>
+                                    <div class="agent-id">${id.substring(0, 8)}...</div>
+                                </div>
+                            </div>
+                            <div class="agent-status ${isActive ? 'active' : 'inactive'}">
+                                <span class="agent-status-dot"></span>
+                                ${isActive ? 'Active' : 'Inactive'}
+                            </div>
+                        </div>
+                        <div class="agent-details">
+                            <div class="agent-detail">
+                                <span class="agent-detail-label">Platform</span>
+                                <span class="agent-detail-value">${agent.platform || 'Unknown'}</span>
+                            </div>
+                            <div class="agent-detail">
+                                <span class="agent-detail-label">Last Heartbeat</span>
+                                <span class="agent-detail-value">${agent.last_heartbeat || 'Never'}</span>
+                            </div>
+                            <div class="agent-detail">
+                                <span class="agent-detail-label">Registered</span>
+                                <span class="agent-detail-value">${agent.registered_at || 'Unknown'}</span>
+                            </div>
+                            <div class="agent-detail">
+                                <span class="agent-detail-label">Logs Sent</span>
+                                <span class="agent-detail-value">${agent.logs_sent || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        })
+        .catch(err => {
+            console.error('Failed to fetch agents:', err);
+        });
+}
+
+refreshAgents();
+setInterval(refreshAgents, 5000);
+{% endblock %}

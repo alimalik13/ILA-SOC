@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ILA-SOC Analytics Dashboard</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .nav-links {
+            margin-top: 15px;
+        }
+        
+        .nav-links a {
+            color: #4CAF50;
+            text-decoration: none;
+            margin-right: 20px;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: #45a049;
+            text-decoration: underline;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        
+        .card-title {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .card-value {
+            color: #333;
+            font-size: 36px;
+            font-weight: 700;
+        }
+        
+        .card.total {
+            border-left: 4px solid #2196F3;
+        }
+        
+        .card.malicious {
+            border-left: 4px solid #f44336;
+        }
+        
+        .card.normal {
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .card.blocked {
+            border-left: 4px solid #ff9800;
+        }
+        
+        .card.vt-cache {
+            border-left: 4px solid #9c27b0;
+        }
+        
+        .card-subtitle {
+            color: #999;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        
+        .charts-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            animation: fadeIn 0.6s ease-in;
+        }
+        
+        .chart-title {
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .table-section {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            animation: fadeIn 0.7s ease-in;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        thead {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .ip-badge {
+            background-color: #ff5722;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .count-badge {
+            background-color: #2196F3;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .toast {
+            min-width: 300px;
+            background-color: #f44336;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-out 4.7s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .toast-icon {
+            font-size: 24px;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        
+        .toast-content {
+            flex: 1;
+        }
+        
+        .toast-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+        
+        .toast-message {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        
+        .toast-close:hover {
+            opacity: 1;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+    <audio id="alertSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjGH0fPTgjMGHm7A7+OZYA4PWqPm77BdGQg+ltryxnInBSp+zO/bizkHGGS96+WoWxQKRJzi8r5sIQYyhM/y0H00BiZ0xPDekDgKFF2y6OqnVRQKQ5rh8sFuIgc0idDxzn0yBSF2ye/dlTkHFme+6+ijYxEKPpXZ8sx4LQUmeMny3I8+ChNcr+fso1cUCj6X2fLLeDIGKn7L79yROQcWa77r6KNiEQo9lNnyzHYuBSh6yPDcjj4KE12w6OynVRQKP5fZ8sx5LwUrdsvv3JI6BxZrv+voo2QSCj6T2fLMeS0FKXvJ8NyPPgoUXrDo7KhXFgo+lNnyz3gsAyd7yO/fkTgHF2m+7+mjYhEJPZTa8sx4LQUofMnw3I4+ChRdr+jrp1kVC0CU3PK+bCEGJHfH8OWQOwkWZ72/e2g=" type="audio/wav">
+    </audio>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ ILA-SOC Analytics Dashboard</h1>
+            <div class="subtitle">Real-time Security Operations Center Insights</div>
+            <div class="nav-links">
+                <a href="/dashboard">📊 Dashboard</a>
+                <a href="/logs/view">📋 Logs Viewer</a>
+            </div>
+            <div id="socketDebug" style="margin-top: 15px; padding: 10px; background-color: #e8f5e9; border-radius: 4px; font-size: 12px; transition: background-color 0.3s;">
+                <strong>WebSocket Status:</strong> Waiting for alerts...
+            </div>
+        </div>
+        
+        <div class="summary-cards">
+            <div class="card total">
+                <div class="card-title">Total Logs</div>
+                <div class="card-value">{{ analytics.total_logs }}</div>
+            </div>
+            <div class="card malicious">
+                <div class="card-title">Malicious Logs</div>
+                <div class="card-value">{{ analytics.total_malicious }}</div>
+            </div>
+            <div class="card normal">
+                <div class="card-title">Normal Logs</div>
+                <div class="card-value">{{ analytics.total_normal }}</div>
+            </div>
+            <div class="card blocked">
+                <div class="card-title">Blocked IPs</div>
+                <div class="card-value">{{ analytics.blocked_ips_count }}</div>
+            </div>
+            <div class="card vt-cache">
+                <div class="card-title">💾 VT Cache</div>
+                <div class="card-value">{{ analytics.cache_stats.total_cached }}</div>
+                <div class="card-subtitle">
+                    Hit Rate: {{ analytics.cache_stats.cache_hit_rate }}% | 
+                    Last Refresh: {{ analytics.cache_stats.last_refresh or 'Never' }}
+                </div>
+            </div>
+        </div>
+        
+        {% if analytics.total_logs > 0 %}
+        <div class="charts-section">
+            <div class="chart-container">
+                <div class="chart-title">📊 Log Classification Distribution</div>
+                <div class="chart-wrapper">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">📈 Logs Activity Timeline</div>
+                <div class="chart-wrapper">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-section">
+            <div class="chart-title">🚫 Top 5 Blocked IP Addresses</div>
+            {% if analytics.top_blocked_ips %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>IP Address</th>
+                        <th>Occurrences</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ip, count in analytics.top_blocked_ips %}
+                    <tr>
+                        <td><strong>#{{ loop.index }}</strong></td>
+                        <td><span class="ip-badge">{{ ip }}</span></td>
+                        <td><span class="count-badge">{{ count }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-data">No blocked IPs yet</div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="no-data">No data available. Send logs to /ingest endpoint to see analytics.</div>
+        {% endif %}
+    </div>
+    
+    <script>
+        const analyticsData = {{ analytics | tojson }};
+        
+        if (analyticsData.total_logs > 0) {
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Malicious', 'Normal'],
+                    datasets: [{
+                        data: [analyticsData.total_malicious, analyticsData.total_normal],
+                        backgroundColor: ['#f44336', '#4CAF50'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = analyticsData.total_logs;
+                                    const value = context.parsed;
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return context.label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+            
+            const logsPerHour = analyticsData.logs_per_hour;
+            const sortedHours = Object.keys(logsPerHour).sort();
+            const hourCounts = sortedHours.map(hour => logsPerHour[hour]);
+            
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: sortedHours,
+                    datasets: [{
+                        label: 'Number of Logs',
+                        data: hourCounts,
+                        backgroundColor: '#4CAF50',
+                        borderColor: '#45a049',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+    </script>
+    
+    <script>
+        const socket = io();
+        
+        socket.on('connect', function() {
+            console.log('✅ Connected to ILA-SOC Real-Time Alerts');
+        });
+        
+        socket.on('connection_response', function(data) {
+            console.log('Server message:', data.data);
+        });
+        
+        socket.on('malicious_log_alert', function(data) {
+            console.log('🚨 Malicious Log Alert Received:', data);
+            
+            // Update debug indicator
+            const debugElement = document.getElementById('socketDebug');
+            if (debugElement) {
+                debugElement.innerHTML = `
+                    <strong>Last Alert:</strong> ${data.ip} at ${data.timestamp}<br>
+                    <strong>VT Status:</strong> ${data.vt_status} | <strong>Confidence:</strong> ${data.confidence}
+                `;
+                debugElement.style.backgroundColor = '#ffeb3b';
+                setTimeout(() => { debugElement.style.backgroundColor = '#e8f5e9'; }, 2000);
+            }
+            
+            showToast(data);
+            playAlertSound();
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('❌ Disconnected from server');
+        });
+        
+        function showToast(data) {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            const ipDisplay = data.ip || 'Unknown';
+            const vtDisplay = data.vt_status && data.vt_status !== '-' ? `VT: ${data.vt_status}` : '';
+            
+            toast.innerHTML = `
+                <div class="toast-icon">⚠️</div>
+                <div class="toast-content">
+                    <div class="toast-title">New Malicious Log Detected</div>
+                    <div class="toast-message">
+                        IP: ${ipDisplay}<br>
+                        ${vtDisplay ? vtDisplay + '<br>' : ''}
+                        ${data.timestamp}
+                    </div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+        
+        function playAlertSound() {
+            const audio = document.getElementById('alertSound');
+            audio.volume = 0.3;
+            audio.play().catch(err => {
+                console.log('Could not play alert sound:', err);
+            });
+        }
+    </script>
+</body>
+</html>

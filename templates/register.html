@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | ILA-SOC Security Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08), 0 0 20px rgba(59, 130, 246, 0.05);
+        }
+        .bg-animate {
+            background: linear-gradient(-45deg, #eff6ff, #f0f9ff, #e0f2fe, #f8fafc);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .input-transition { transition: all 0.2s ease; }
+        .input-transition:focus { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); }
+        .btn-hover { transition: all 0.3s ease; }
+        .btn-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2); }
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(10px); }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+        
+        .floating-icon { animation: float 6s ease-in-out infinite; }
+        .floating-icon-delayed { animation: float 7s ease-in-out 1s infinite; }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        #toast {
+            transition: opacity 0.3s, transform 0.3s;
+            opacity: 0;
+            transform: translateY(-20px) translateX(-50%);
+            pointer-events: none;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateY(0) translateX(-50%);
+        }
+        /* Password strength meter */
+        .strength-meter div { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="bg-animate min-h-screen flex items-center justify-center relative overflow-hidden text-slate-800 py-10">
+    
+    <!-- Background Elements -->
+    <div class="absolute top-[20%] right-[-5%] w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 floating-icon"></div>
+    <div class="absolute bottom-[10%] left-[5%] w-[30rem] h-[30rem] bg-indigo-50 rounded-full mix-blend-multiply filter blur-3xl opacity-50 floating-icon-delayed"></div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-6 left-1/2 z-50 flex items-center p-4 mb-4 w-full max-w-sm rounded-lg shadow glass-card">
+        <div id="toast-icon" class="inline-flex flex-shrink-0 justify-center items-center w-8 h-8 rounded-lg"></div>
+        <div id="toast-message" class="ml-3 text-sm font-medium"></div>
+    </div>
+
+    <div class="container mx-auto px-4 flex flex-col items-center justify-center z-10 relative">
+        <!-- Auth Card -->
+        <div class="w-full max-w-lg glass-card rounded-2xl p-8 fade-in" style="animation-delay: 0.1s;">
+            <div class="text-center mb-8">
+                <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg mx-auto mb-4">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900">Create Account</h2>
+                <p class="text-sm text-slate-600 mt-2">Join ILA-SOC Security Operations Platform</p>
+            </div>
+
+            <form id="registerForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="full_name" class="block text-sm font-semibold text-slate-700 mb-1">Full Name</label>
+                        <input type="text" id="full_name" class="input-transition w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Jane Doe" required>
+                    </div>
+                    <div>
+                        <label for="organization" class="block text-sm font-semibold text-slate-700 mb-1">Organization <span class="text-slate-400 font-normal">(Optional)</span></label>
+                        <input type="text" id="organization" class="input-transition w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Acme Corp">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="email" class="block text-sm font-semibold text-slate-700 mb-1">Work Email</label>
+                    <input type="email" id="email" class="input-transition w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="jane@organization.com" required>
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-semibold text-slate-700 mb-1">Password</label>
+                    <input type="password" id="password" class="input-transition w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="••••••••" required>
+                    <!-- Password Strength -->
+                    <div class="mt-2 flex gap-1 strength-meter" id="strengthMeter">
+                        <div class="h-1 w-1/4 bg-slate-200 rounded-full" id="s1"></div>
+                        <div class="h-1 w-1/4 bg-slate-200 rounded-full" id="s2"></div>
+                        <div class="h-1 w-1/4 bg-slate-200 rounded-full" id="s3"></div>
+                        <div class="h-1 w-1/4 bg-slate-200 rounded-full" id="s4"></div>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1" id="strengthText">Use 8+ chars with mix of letters, numbers & symbols</p>
+                </div>
+
+                <div>
+                    <label for="confirm_password" class="block text-sm font-semibold text-slate-700 mb-1">Confirm Password</label>
+                    <input type="password" id="confirm_password" class="input-transition w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="••••••••" required>
+                    <p class="text-xs text-red-500 mt-1 hidden" id="matchError">Passwords do not match</p>
+                </div>
+
+                <div class="flex items-start pt-2">
+                    <input id="terms" type="checkbox" class="w-4 h-4 mt-0.5 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500" required>
+                    <label for="terms" class="ml-2 block text-sm text-slate-600 font-medium leading-tight">
+                        I accept the <a href="#" class="text-blue-600 hover:text-blue-800">Terms of Service</a> and <a href="#" class="text-blue-600 hover:text-blue-800">Privacy Policy</a>
+                    </label>
+                </div>
+
+                <button type="submit" id="registerBtn" class="btn-hover w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 relative mt-4">
+                    <span id="btnText">Create Account</span>
+                    <svg id="btnSpinner" class="hidden animate-spin h-5 w-5 text-white absolute" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </form>
+
+            <div class="mt-6 flex items-center justify-between">
+                <span class="w-1/5 border-b border-slate-200 lg:w-1/4"></span>
+                <span class="text-xs text-center text-slate-500 uppercase font-semibold">Or sign up with</span>
+                <span class="w-1/5 border-b border-slate-200 lg:w-1/4"></span>
+            </div>
+
+            <div class="mt-6 flex justify-center">
+                <div id="g_id_onload"
+                     data-client_id="{{ google_client_id }}"
+                     data-context="signup"
+                     data-ux_mode="popup"
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="rectangular"
+                     data-theme="outline"
+                     data-text="signup_with"
+                     data-size="large"
+                     data-logo_alignment="left">
+                </div>
+            </div>
+
+            <p class="mt-8 text-center text-sm text-slate-600">
+                Already have an account? 
+                <a href="/login" class="font-semibold text-blue-600 hover:text-blue-800 transition">Sign in</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Password Strength Checker
+        const pwdInput = document.getElementById('password');
+        const confirmPwd = document.getElementById('confirm_password');
+        const matchError = document.getElementById('matchError');
+        const s1 = document.getElementById('s1');
+        const s2 = document.getElementById('s2');
+        const s3 = document.getElementById('s3');
+        const s4 = document.getElementById('s4');
+        const strengthText = document.getElementById('strengthText');
+
+        pwdInput.addEventListener('input', () => {
+            const val = pwdInput.value;
+            let strength = 0;
+            if (val.length >= 8) strength++;
+            if (val.match(/[A-Z]/)) strength++;
+            if (val.match(/[0-9]/)) strength++;
+            if (val.match(/[^a-zA-Z0-9]/)) strength++;
+
+            s1.className = `h-1 w-1/4 rounded-full ${strength >= 1 ? 'bg-red-500' : 'bg-slate-200'}`;
+            s2.className = `h-1 w-1/4 rounded-full ${strength >= 2 ? 'bg-orange-500' : 'bg-slate-200'}`;
+            s3.className = `h-1 w-1/4 rounded-full ${strength >= 3 ? 'bg-yellow-400' : 'bg-slate-200'}`;
+            s4.className = `h-1 w-1/4 rounded-full ${strength >= 4 ? 'bg-green-500' : 'bg-slate-200'}`;
+            
+            if(strength === 0) strengthText.textContent = "Use 8+ chars with mix of letters, numbers & symbols";
+            else if(strength === 1) strengthText.textContent = "Weak";
+            else if(strength === 2) strengthText.textContent = "Fair";
+            else if(strength === 3) strengthText.textContent = "Good";
+            else if(strength === 4) strengthText.textContent = "Strong";
+            
+            checkMatch();
+        });
+
+        function checkMatch() {
+            if (confirmPwd.value && pwdInput.value !== confirmPwd.value) {
+                matchError.classList.remove('hidden');
+                confirmPwd.classList.add('border-red-500');
+            } else {
+                matchError.classList.add('hidden');
+                confirmPwd.classList.remove('border-red-500');
+            }
+        }
+        confirmPwd.addEventListener('input', checkMatch);
+
+        // Toast and Loading Logic
+        function showToast(type, message) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-message');
+            
+            toast.className = 'fixed top-6 left-1/2 z-50 flex items-center p-4 mb-4 w-full max-w-sm rounded-lg shadow glass-card';
+            
+            if (type === 'success') {
+                icon.className = 'inline-flex flex-shrink-0 justify-center items-center w-8 h-8 text-green-500 bg-green-100 rounded-lg';
+                icon.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>';
+            } else if (type === 'error') {
+                icon.className = 'inline-flex flex-shrink-0 justify-center items-center w-8 h-8 text-red-500 bg-red-100 rounded-lg';
+                icon.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>';
+            }
+            
+            msg.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        function toggleLoading(isLoading) {
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const btn = document.getElementById('registerBtn');
+            
+            if (isLoading) {
+                btnText.classList.add('hidden');
+                btnSpinner.classList.remove('hidden');
+                btn.disabled = true;
+                btn.classList.add('opacity-80');
+            } else {
+                btnText.classList.remove('hidden');
+                btnSpinner.classList.add('hidden');
+                btn.disabled = false;
+                btn.classList.remove('opacity-80');
+            }
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (pwdInput.value !== confirmPwd.value) {
+                showToast('error', 'Passwords do not match');
+                return;
+            }
+            
+            const email = document.getElementById('email').value;
+            const password = pwdInput.value;
+            const full_name = document.getElementById('full_name').value;
+            const organization = document.getElementById('organization').value;
+            
+            toggleLoading(true);
+            
+            try {
+                const response = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, full_name, organization })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('success', 'Account created successfully. Redirecting...');
+                    setTimeout(() => window.location.href = '/', 800);
+                } else {
+                    showToast('error', data.message || 'Registration failed');
+                    toggleLoading(false);
+                }
+            } catch (err) {
+                showToast('error', 'Network error occurred');
+                toggleLoading(false);
+            }
+        });
+
+        async function handleCredentialResponse(response) {
+            try {
+                const res = await fetch('/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credential: response.credential })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast('success', 'Google sign-up successful. Redirecting...');
+                    setTimeout(() => window.location.href = '/', 800);
+                } else {
+                    showToast('error', data.message || 'Google sign-up failed');
+                }
+            } catch (err) {
+                showToast('error', 'Network error occurred');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,933 @@
+{% extends "base.html" %}
+
+{% block title %}Web Threat Intelligence{% endblock %}
+{% block page_title %}Web Threat Intelligence{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .wti-metrics {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .wti-metric-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .wti-metric-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .wti-metric-icon svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .wti-metric-icon.total { background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); }
+    .wti-metric-icon.danger { background: rgba(239, 68, 68, 0.1); color: var(--accent-red); }
+    .wti-metric-icon.warning { background: rgba(245, 158, 11, 0.1); color: var(--accent-yellow); }
+    .wti-metric-icon.safe { background: rgba(16, 185, 129, 0.1); color: var(--accent-green); }
+    .wti-metric-icon.override { background: rgba(139, 92, 246, 0.1); color: var(--accent-purple); }
+
+    .wti-metric-value {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+
+    .wti-metric-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    .wti-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .wti-search {
+        flex: 1;
+        min-width: 200px;
+        max-width: 320px;
+        padding: 10px 14px 10px 38px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 13px;
+    }
+
+    .wti-search:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+    }
+
+    .wti-search-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 200px;
+        max-width: 320px;
+    }
+
+    .wti-search-wrap svg {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        color: var(--text-muted);
+        pointer-events: none;
+    }
+
+    .wti-select {
+        padding: 10px 14px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        font-size: 13px;
+        cursor: pointer;
+    }
+
+    .wti-select:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+    }
+
+    .wti-date-input {
+        padding: 10px 14px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .wti-date-input:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+    }
+
+    .wti-table-container {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+
+    .wti-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .wti-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .wti-table th {
+        text-align: left;
+        padding: 14px 16px;
+        background: var(--bg-secondary);
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    .wti-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 13px;
+        color: var(--text-secondary);
+        vertical-align: middle;
+    }
+
+    .wti-table tbody tr {
+        cursor: pointer;
+        transition: background 0.1s;
+    }
+
+    .wti-table tbody tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .wti-url-cell {
+        max-width: 280px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: monospace;
+        font-size: 12px;
+        color: var(--text-primary);
+    }
+
+    .wti-timestamp {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    .wti-score {
+        font-weight: 600;
+        font-family: monospace;
+        font-size: 13px;
+    }
+
+    .wti-score.high { color: var(--accent-red); }
+    .wti-score.medium { color: var(--accent-yellow); }
+    .wti-score.low { color: var(--accent-green); }
+
+    .wti-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .wti-badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .wti-badge.phishing { background: rgba(239, 68, 68, 0.1); color: var(--accent-red); }
+    .wti-badge.suspicious { background: rgba(245, 158, 11, 0.1); color: var(--accent-yellow); }
+    .wti-badge.safe { background: rgba(16, 185, 129, 0.1); color: var(--accent-green); }
+
+    .wti-confidence {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 3px 8px;
+        border-radius: 4px;
+    }
+
+    .wti-confidence.high-conf { background: rgba(239, 68, 68, 0.1); color: var(--accent-red); }
+    .wti-confidence.medium-conf { background: rgba(245, 158, 11, 0.1); color: var(--accent-yellow); }
+    .wti-confidence.low-conf { background: rgba(107, 114, 128, 0.1); color: var(--text-muted); }
+
+    .wti-action-tag {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+
+    .wti-action-tag.proceed { background: rgba(239, 68, 68, 0.1); color: var(--accent-red); }
+    .wti-action-tag.cancel { background: rgba(16, 185, 129, 0.1); color: var(--accent-green); }
+    .wti-action-tag.none { background: rgba(107, 114, 128, 0.1); color: var(--text-muted); }
+
+    .wti-signals {
+        font-size: 11px;
+        color: var(--text-muted);
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .wti-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border-color);
+    }
+
+    .wti-page-info {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+
+    .wti-page-btns {
+        display: flex;
+        gap: 6px;
+    }
+
+    .wti-page-btn {
+        padding: 8px 14px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .wti-page-btn:hover:not(:disabled) {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+    }
+
+    .wti-page-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .wti-page-btn.active {
+        background: var(--accent-blue);
+        border-color: var(--accent-blue);
+        color: white;
+    }
+
+    .wti-charts {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .wti-chart-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .wti-chart-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+    }
+
+    .wti-chart-wrap {
+        position: relative;
+        height: 220px;
+    }
+
+    .wti-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 0;
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+    .wti-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+
+    .wti-empty h3 {
+        font-size: 16px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        max-width: 680px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .modal-close {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: var(--bg-hover);
+        border-radius: 6px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .modal-field {
+        margin-bottom: 16px;
+    }
+
+    .modal-field-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    .modal-field-value {
+        font-size: 13px;
+        color: var(--text-primary);
+        word-break: break-all;
+    }
+
+    .modal-field-value.mono {
+        font-family: monospace;
+        font-size: 12px;
+        background: var(--bg-secondary);
+        padding: 8px 12px;
+        border-radius: 6px;
+    }
+
+    .modal-scores {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin: 16px 0;
+    }
+
+    .modal-score-item {
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 14px;
+        text-align: center;
+    }
+
+    .modal-score-value {
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .modal-score-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-top: 6px;
+    }
+
+    .skeleton {
+        background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-hover) 50%, var(--bg-secondary) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 4px;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    .skeleton-row {
+        display: flex;
+        gap: 16px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .skeleton-cell {
+        height: 16px;
+    }
+
+    @media (max-width: 1200px) {
+        .wti-metrics { grid-template-columns: repeat(3, 1fr); }
+        .wti-charts { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+        .wti-metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wti-metrics" id="metricsCards">
+    <div class="wti-metric-card">
+        <div class="wti-metric-icon total">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <div>
+            <div class="wti-metric-value" id="metricTotal">--</div>
+            <div class="wti-metric-label">Total URLs Scanned</div>
+        </div>
+    </div>
+    <div class="wti-metric-card">
+        <div class="wti-metric-icon danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div>
+            <div class="wti-metric-value" id="metricPhishing">--</div>
+            <div class="wti-metric-label">High Risk</div>
+        </div>
+    </div>
+    <div class="wti-metric-card">
+        <div class="wti-metric-icon warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div>
+            <div class="wti-metric-value" id="metricSuspicious">--</div>
+            <div class="wti-metric-label">Suspicious</div>
+        </div>
+    </div>
+    <div class="wti-metric-card">
+        <div class="wti-metric-icon safe">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div>
+            <div class="wti-metric-value" id="metricSafe">--</div>
+            <div class="wti-metric-label">Safe</div>
+        </div>
+    </div>
+    <div class="wti-metric-card">
+        <div class="wti-metric-icon override">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div>
+            <div class="wti-metric-value" id="metricOverride">--</div>
+            <div class="wti-metric-label">Override Rate</div>
+        </div>
+    </div>
+</div>
+
+<div class="wti-toolbar">
+    <div class="wti-search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="wti-search" id="domainSearch" placeholder="Search by domain or URL...">
+    </div>
+    <select class="wti-select" id="riskFilter">
+        <option value="all">All Risk Levels</option>
+        <option value="Phishing">High Risk</option>
+        <option value="Suspicious">Suspicious</option>
+        <option value="Safe">Safe</option>
+    </select>
+    <select class="wti-select" id="sortFilter">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="risk_high">Risk: High to Low</option>
+        <option value="risk_low">Risk: Low to High</option>
+    </select>
+    <input type="date" class="wti-date-input" id="dateFrom" title="From date">
+    <input type="date" class="wti-date-input" id="dateTo" title="To date">
+</div>
+
+<div class="wti-table-container">
+    <div style="overflow-x: auto;">
+        <table class="wti-table">
+            <thead>
+                <tr>
+                    <th style="width: 150px;">Timestamp</th>
+                    <th>URL</th>
+                    <th style="width: 90px;">Risk Score</th>
+                    <th style="width: 110px;">Risk Level</th>
+                    <th style="width: 90px;">Confidence</th>
+                    <th style="width: 100px;">Action</th>
+                    <th style="width: 200px;">Detection Signals</th>
+                </tr>
+            </thead>
+            <tbody id="urlTableBody">
+                <tr><td colspan="7"><div class="wti-loading">Loading URL scan data...</div></td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="wti-pagination" id="paginationBar">
+        <div class="wti-page-info" id="pageInfo">--</div>
+        <div class="wti-page-btns" id="pageBtns"></div>
+    </div>
+</div>
+
+<div class="wti-charts">
+    <div class="wti-chart-card">
+        <div class="wti-chart-title">Risk Distribution</div>
+        <div class="wti-chart-wrap"><canvas id="riskDistChart"></canvas></div>
+    </div>
+    <div class="wti-chart-card">
+        <div class="wti-chart-title">URL Scans Over Time</div>
+        <div class="wti-chart-wrap"><canvas id="timelineChart"></canvas></div>
+    </div>
+    <div class="wti-chart-card">
+        <div class="wti-chart-title">User Action Breakdown</div>
+        <div class="wti-chart-wrap"><canvas id="actionChart"></canvas></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>URL Scan Details</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+    let currentPage = 1;
+    let perPage = 25;
+    let allData = null;
+    let riskChart = null;
+    let timelineChart = null;
+    let actionChart = null;
+    let debounceTimer = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchData();
+        document.getElementById('domainSearch').addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => { currentPage = 1; fetchData(); }, 400);
+        });
+        document.getElementById('riskFilter').addEventListener('change', () => { currentPage = 1; fetchData(); });
+        document.getElementById('sortFilter').addEventListener('change', () => { currentPage = 1; fetchData(); });
+        document.getElementById('dateFrom').addEventListener('change', () => { currentPage = 1; fetchData(); });
+        document.getElementById('dateTo').addEventListener('change', () => { currentPage = 1; fetchData(); });
+        document.getElementById('detailModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('detailModal')) closeModal();
+        });
+    });
+
+    function buildQuery() {
+        const params = new URLSearchParams();
+        params.set('page', currentPage);
+        params.set('per_page', perPage);
+        const risk = document.getElementById('riskFilter').value;
+        if (risk !== 'all') params.set('risk_level', risk);
+        const domain = document.getElementById('domainSearch').value.trim();
+        if (domain) params.set('domain', domain);
+        const from = document.getElementById('dateFrom').value;
+        if (from) params.set('date_from', from);
+        const to = document.getElementById('dateTo').value;
+        if (to) params.set('date_to', to);
+        params.set('sort_by', document.getElementById('sortFilter').value);
+        return params.toString();
+    }
+
+    async function fetchData() {
+        try {
+            const resp = await fetch(`/api/url/logs?${buildQuery()}`);
+            if (!resp.ok) throw new Error('Failed to fetch');
+            allData = await resp.json();
+            renderMetrics(allData.metrics);
+            renderTable(allData.logs);
+            renderPagination(allData.pagination);
+            renderCharts(allData);
+        } catch (err) {
+            document.getElementById('urlTableBody').innerHTML =
+                '<tr><td colspan="7"><div class="wti-empty"><h3>Failed to load data</h3></div></td></tr>';
+        }
+    }
+
+    function renderMetrics(m) {
+        document.getElementById('metricTotal').textContent = m.total.toLocaleString();
+        document.getElementById('metricPhishing').textContent = m.phishing.toLocaleString();
+        document.getElementById('metricSuspicious').textContent = m.suspicious.toLocaleString();
+        document.getElementById('metricSafe').textContent = m.safe.toLocaleString();
+        document.getElementById('metricOverride').textContent = m.override_rate + '%';
+    }
+
+    function getConfidence(score) {
+        if (score >= 90) return { label: 'High', cls: 'high-conf' };
+        if (score >= 70) return { label: 'Medium', cls: 'medium-conf' };
+        return { label: 'Low', cls: 'low-conf' };
+    }
+
+    function getScoreClass(score) {
+        if (score >= 85) return 'high';
+        if (score >= 60) return 'medium';
+        return 'low';
+    }
+
+    function getBadgeClass(verdict) {
+        if (verdict === 'Phishing') return 'phishing';
+        if (verdict === 'Suspicious') return 'suspicious';
+        return 'safe';
+    }
+
+    function truncateUrl(url, max) {
+        return url.length > max ? url.substring(0, max) + '...' : url;
+    }
+
+    function renderTable(logs) {
+        const tbody = document.getElementById('urlTableBody');
+        if (!logs || logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7"><div class="wti-empty"><h3>No URL scans found</h3><p>URL checks from the browser extension will appear here.</p></div></td></tr>';
+            return;
+        }
+        tbody.innerHTML = logs.map((log, i) => {
+            const conf = getConfidence(log.risk_score);
+            const scoreClass = getScoreClass(log.risk_score);
+            const badgeClass = getBadgeClass(log.verdict);
+            const signals = log.reason || 'No signals';
+            const ts = log.checked_at ? log.checked_at.substring(0, 19) : '--';
+            return `<tr onclick="openModal(${i})">
+                <td><span class="wti-timestamp">${ts}</span></td>
+                <td><span class="wti-url-cell" title="${escHtml(log.url)}">${escHtml(truncateUrl(log.url, 55))}</span></td>
+                <td><span class="wti-score ${scoreClass}">${log.risk_score}</span></td>
+                <td><span class="wti-badge ${badgeClass}"><span class="wti-badge-dot"></span>${log.verdict}</span></td>
+                <td><span class="wti-confidence ${conf.cls}">${conf.label}</span></td>
+                <td><span class="wti-action-tag none">--</span></td>
+                <td><span class="wti-signals" title="${escHtml(signals)}">${escHtml(truncateUrl(signals, 40))}</span></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function renderPagination(p) {
+        const info = document.getElementById('pageInfo');
+        const btns = document.getElementById('pageBtns');
+        const start = (p.page - 1) * p.per_page + 1;
+        const end = Math.min(p.page * p.per_page, p.total);
+        info.textContent = p.total > 0 ? `Showing ${start}-${end} of ${p.total}` : 'No results';
+
+        let html = '';
+        html += `<button class="wti-page-btn" onclick="goPage(1)" ${p.page <= 1 ? 'disabled' : ''}>First</button>`;
+        html += `<button class="wti-page-btn" onclick="goPage(${p.page - 1})" ${p.page <= 1 ? 'disabled' : ''}>Prev</button>`;
+        const startP = Math.max(1, p.page - 2);
+        const endP = Math.min(p.total_pages, p.page + 2);
+        for (let i = startP; i <= endP; i++) {
+            html += `<button class="wti-page-btn ${i === p.page ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+        }
+        html += `<button class="wti-page-btn" onclick="goPage(${p.page + 1})" ${p.page >= p.total_pages ? 'disabled' : ''}>Next</button>`;
+        html += `<button class="wti-page-btn" onclick="goPage(${p.total_pages})" ${p.page >= p.total_pages ? 'disabled' : ''}>Last</button>`;
+        btns.innerHTML = html;
+    }
+
+    function goPage(page) {
+        currentPage = page;
+        fetchData();
+    }
+
+    function parseScoresFromReason(reason) {
+        const result = { lexical: '--', url_ml: '--', content: '--' };
+        if (!reason) return result;
+        const mlMatch = reason.match(/URL ML:\s*([\d.]+)/);
+        const contentMatch = reason.match(/Content:\s*([\d.]+)/);
+        if (mlMatch) result.url_ml = mlMatch[1];
+        if (contentMatch) result.content = contentMatch[1];
+        return result;
+    }
+
+    function openModal(index) {
+        const log = allData.logs[index];
+        if (!log) return;
+        const conf = getConfidence(log.risk_score);
+        const badgeClass = getBadgeClass(log.verdict);
+        const scores = parseScoresFromReason(log.reason);
+        const lexicalScore = log.risk_score;
+
+        let featuresHtml = '';
+        if (log.features_json) {
+            try {
+                const f = JSON.parse(log.features_json);
+                if (f.is_suspicious_tld) featuresHtml += '<span class="wti-badge suspicious" style="margin:2px;font-size:10px;">Suspicious TLD</span>';
+                if (f.has_brand_keyword && !f.is_legitimate_brand) featuresHtml += '<span class="wti-badge phishing" style="margin:2px;font-size:10px;">Brand Impersonation</span>';
+                if (f.has_phishing_path) featuresHtml += '<span class="wti-badge suspicious" style="margin:2px;font-size:10px;">Phishing Path</span>';
+                if (f.is_ip_address) featuresHtml += '<span class="wti-badge phishing" style="margin:2px;font-size:10px;">IP Address</span>';
+                if (f.has_punycode) featuresHtml += '<span class="wti-badge phishing" style="margin:2px;font-size:10px;">Punycode</span>';
+                if (!f.is_https) featuresHtml += '<span class="wti-badge suspicious" style="margin:2px;font-size:10px;">No HTTPS</span>';
+            } catch(e) {}
+        }
+
+        document.getElementById('modalBody').innerHTML = `
+            <div class="modal-field">
+                <div class="modal-field-label">Full URL</div>
+                <div class="modal-field-value mono">${escHtml(log.url)}</div>
+            </div>
+            <div class="modal-field">
+                <div class="modal-field-label">Verdict</div>
+                <div class="modal-field-value"><span class="wti-badge ${badgeClass}"><span class="wti-badge-dot"></span>${log.verdict}</span> <span class="wti-confidence ${conf.cls}" style="margin-left:8px;">${conf.label} Confidence</span></div>
+            </div>
+            <div class="modal-scores">
+                <div class="modal-score-item">
+                    <div class="modal-score-value wti-score ${getScoreClass(log.risk_score)}">${log.risk_score}</div>
+                    <div class="modal-score-label">Final Score</div>
+                </div>
+                <div class="modal-score-item">
+                    <div class="modal-score-value" style="color:var(--accent-cyan);">${scores.url_ml}</div>
+                    <div class="modal-score-label">URL ML</div>
+                </div>
+                <div class="modal-score-item">
+                    <div class="modal-score-value" style="color:var(--accent-purple);">${scores.content}</div>
+                    <div class="modal-score-label">Content</div>
+                </div>
+                <div class="modal-score-item">
+                    <div class="modal-score-value" style="color:var(--text-muted);">${log.response_time_ms ? log.response_time_ms.toFixed(0) + 'ms' : '--'}</div>
+                    <div class="modal-score-label">Response</div>
+                </div>
+            </div>
+            <div class="modal-field">
+                <div class="modal-field-label">Detection Explanation</div>
+                <div class="modal-field-value">${escHtml(log.reason || 'No details available')}</div>
+            </div>
+            ${featuresHtml ? '<div class="modal-field"><div class="modal-field-label">Feature Flags</div><div class="modal-field-value">' + featuresHtml + '</div></div>' : ''}
+            <div class="modal-field" style="display:flex;gap:24px;">
+                <div><div class="modal-field-label">Domain</div><div class="modal-field-value">${escHtml(log.domain || '--')}</div></div>
+                <div><div class="modal-field-label">Nudge Level</div><div class="modal-field-value">${escHtml(log.nudge_level || '--')}</div></div>
+                <div><div class="modal-field-label">Timestamp</div><div class="modal-field-value">${escHtml(log.checked_at || '--')}</div></div>
+            </div>
+        `;
+        document.getElementById('detailModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('detailModal').classList.remove('active');
+    }
+
+    function renderCharts(data) {
+        renderRiskDistChart(data.metrics);
+        renderTimelineChart(data.timeline);
+        renderActionChart(data.feedback);
+    }
+
+    function renderRiskDistChart(m) {
+        const ctx = document.getElementById('riskDistChart').getContext('2d');
+        if (riskChart) riskChart.destroy();
+        riskChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['High Risk', 'Suspicious', 'Safe'],
+                datasets: [{
+                    data: [m.phishing, m.suspicious, m.safe],
+                    backgroundColor: ['rgba(239, 68, 68, 0.7)', 'rgba(245, 158, 11, 0.7)', 'rgba(16, 185, 129, 0.7)'],
+                    borderColor: ['rgb(239, 68, 68)', 'rgb(245, 158, 11)', 'rgb(16, 185, 129)'],
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                }
+            }
+        });
+    }
+
+    function renderTimelineChart(timeline) {
+        const ctx = document.getElementById('timelineChart').getContext('2d');
+        if (timelineChart) timelineChart.destroy();
+        const labels = (timeline || []).map(t => t.date);
+        const values = (timeline || []).map(t => t.count);
+        timelineChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Scans',
+                    data: values,
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    pointBackgroundColor: 'rgb(59, 130, 246)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 7 } }
+                }
+            }
+        });
+    }
+
+    function renderActionChart(feedback) {
+        const ctx = document.getElementById('actionChart').getContext('2d');
+        if (actionChart) actionChart.destroy();
+        const proceed = (feedback || {}).proceed || 0;
+        const cancel = (feedback || {}).cancel || 0;
+        const report = (feedback || {}).report || 0;
+        const hasData = proceed + cancel + report > 0;
+        actionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: hasData ? ['Continued', 'Went Back', 'Reported'] : ['No Data'],
+                datasets: [{
+                    data: hasData ? [proceed, cancel, report] : [1],
+                    backgroundColor: hasData
+                        ? ['rgba(239, 68, 68, 0.7)', 'rgba(16, 185, 129, 0.7)', 'rgba(245, 158, 11, 0.7)']
+                        : ['rgba(107, 114, 128, 0.2)'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#9ca3af', padding: 16, font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    function escHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+{% endblock %}

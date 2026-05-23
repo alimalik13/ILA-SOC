@@ -1,0 +1,152 @@
+================================================================================
+                                   ILA-SOC
+                         Project Details & Architecture
+================================================================================
+
+1. PROJECT NAME
+---------------
+ILA-SOC (Intelligent Log Analytics & Security Operations Center)
+
+2. FULL PROJECT OVERVIEW
+------------------------
+ILA-SOC is an enterprise-grade, intelligent Security Operations Center (SOC) 
+platform designed to parse, analyze, and detect cybersecurity threats across 
+hybrid network environments. By blending rule-based heuristics with machine 
+learning models, the system ingests system logs, network flows, and web 
+telemetry in real time. It correlates disparate telemetry streams, assigns 
+context-aware risk verdicts (Normal, Suspicious, Malicious), and presents an 
+interactive dashboard for security analysts. It also incorporates user-profiling 
+and nudging mechanics to help prevent risky behaviors.
+
+3. PROBLEM STATEMENT
+--------------------
+Modern Security Operations Centers are overwhelmed by a massive volume of security 
+alerts, leading to "alert fatigue" and missed threats. Traditional SIEM systems 
+rely heavily on static, signature-based rules that fail to detect zero-day exploits, 
+obfuscated scripts, and slow, stateful reconnaissance behaviors (e.g., APTs). Furthermore, 
+most security platforms ignore the human factor—failing to profile user behavior and 
+nudge employees away from risky actions, such as visiting flagged URLs.
+
+4. PURPOSE OF THE SYSTEM
+------------------------
+The purpose of ILA-SOC is to provide a unified, highly optimized, and intelligence-driven 
+log analytics platform that:
+- Automates threat detection across endpoint processes (Sysmon) and network flow telemetry.
+- Minimizes false positives by applying context-aware baseline heuristics.
+- Accelerates incident response via automated triage, correlation, and response actions.
+- Promotes cybersecurity awareness by profiling user behavior and applying adaptive nudges.
+
+5. FEATURES AND CAPABILITIES
+----------------------------
+- Real-time Log Ingestion: High-throughput ingestion of endpoints, agents, and network logs.
+- Automatic Incident Promotion: Suspicious or malicious logs are automatically promoted to the Alert Triage queue.
+- Interactive Alert Triage Queue: Allows analysts to review logs, mark false positives, suppress similar alerts, or block associated IPs.
+- Incident Lifecycle Management: Supports Tier 1/2/3 analyst assignments, escalation workflows, note tracking, and incident resolution.
+- PDF Report Generation: Automatic compiling of security status, actions taken, and incident timelines into professional executive reports.
+- Email Alerts & Escalations: Native SMTP notification system for high-severity alerts and L2-to-L3 analyst escalations.
+
+6. ATTACK DETECTION CAPABILITIES
+--------------------------------
+- Credential Theft: Detections for Mimikatz command usage, LSASS memory dumping, and registry SAM hive access.
+- Lateral Movement & Execution: Identifies execution of PsExec, WMI, WinRM, and obfuscated PowerShell commands.
+- Privilege Escalation: Flags suspicious parent-child process pairs and system privilege assignments.
+- Web & Network Attacks: Identifies Port Scanning, DoS/DDoS, SQL Injections, Path Traversal, and Log4Shell patterns.
+- Active Directory & Cloud: Monitors DCSync replication, AS-REP roasting, BloodHound activity, and cloud metadata IMDS access.
+- Stateful Reconnaissance: Implements windowed rolling-recon detection (e.g., 3+ discovery commands like whoami, tasklist, route within 120s from the same host).
+
+7. TECHNOLOGIES USED
+--------------------
+- Backend Framework: Flask 3.0, Werkzeug 3.0
+- Real-time Communication: Flask-SocketIO (WebSockets)
+- Machine Learning Stack: Scikit-Learn, XGBoost, Pandas, NumPy, SciPy, Joblib
+- Database Engine: SQLite 3
+- Report Compilation: FPDF2
+- Authorization & Authentication: PyJWT (JSON Web Tokens), Google OAuth 2.0
+- Environment Management: python-dotenv
+
+8. MACHINE LEARNING MODELS USED
+-------------------------------
+ILA-SOC features a dual-layered ML pipeline for text logs and network flows:
+A. Text Log Classifier Ensemble:
+   1. Enhanced TF-IDF Model (Preferred): Multi-class Random Forest model trained on SMOTE-balanced text logs.
+   2. Isolation Forest (Anomaly Detector): Identifies zero-day anomalies and novel attack vectors.
+   3. Calibrated Ensemble: Blends Random Forest and XGBoost predictions with contextual features (e.g., user authority, LOLBin flags, path checks).
+   4. Legacy 32-Feature Model (Fallback): Extracted keyword statistics, entropy, and character profiles.
+B. Network Flow Classifier:
+   - Enhanced XGBoost flow classifier mapping 80 network metrics (durations, packet counts, byte rates) to 19 distinct attack classes (e.g., Botnet, DDoS, PortScan).
+C. User Archetype Profiler:
+   - Random Forest model classifying users into "Cautious", "Impulsive", or "Negligent" based on warning dismissals, risky URL ratios, and peak hour activities.
+
+9. SYSMON INTEGRATION
+---------------------
+The system ingests Windows Sysmon event logs natively:
+- Event ID 1 (Process Create): Analyzes command lines for obfuscation, LolBins, and script interpreters.
+- Event ID 3 (Network Connection): Detects outbound sockets to non-standard ports.
+- Event ID 10 (Process Access): Identifies target objects (e.g., lsass.exe) accessed by unsigned binaries.
+- Event ID 12/13/14 (Registry Activity): Tracks registry run-keys for persistence.
+- Event ID 22 (DNS Query): Evaluates queried domains for DGA (Domain Generation Algorithms) via Shannon entropy.
+
+10. SHADOW MODE MONITORING
+--------------------------
+ILA-SOC implements a passive parallel analytics architecture called "Shadow Mode" 
+(nextgen_sysmon_pipeline/shadow_mode_runner.py). It silently intercepts raw incoming Sysmon 
+telemetry and processes it in parallel with the production pipeline:
+- Extracts structured features using ProcessTracker.
+- Logs events alongside legacy verdicts to structured_feature_vectors.db.
+- Guarantees zero disruption: any error in shadow mode is caught safely to prevent blocking ingestion routes.
+
+11. DASHBOARD AND VISUALIZATION FEATURES
+----------------------------------------
+- Real-time Alert stream: Live-updating web stream of system telemetry.
+- Incident Metrics: Summary statistics of total logs, malicious detections, open incidents, and blocked IPs.
+- Process Tree Visualization: Interactive execution chain view for Sysmon process creations.
+- Timeline Explorer: Event-by-event chronological flow of security incidents.
+- Threat Distribution Charts: Interactive visualization of attack categories.
+
+12. DATABASE USAGE
+------------------
+- Main DB (ila_soc.db): Persists logs, alerts, users, sessions, url_checks, incidents, response summaries, and SLA trackers. Uses optimized performance indices on timestamps and statuses.
+- User Behavior DB (behavior_tracker/behavior_data.db): Tracks user-specific actions (warnings dismissed/heeded, download attempts) in WAL mode.
+- Shadow DB (nextgen_sysmon_pipeline/structured_feature_logs/structured_feature_vectors.db): Logs passive feature matrices.
+
+13. API FUNCTIONALITY
+---------------------
+- Authentication APIs: `/auth/login`, `/auth/register`, `/auth/google` (OAuth validation), `/auth/me`.
+- Incident Management APIs: `/api/incidents`, `/api/incidents/<id>/timeline`, `/api/incidents/<id>/assign`, `/api/incidents/<id>/notes`, `/api/incidents/<id>/escalate`.
+- Alert Triage APIs: `/api/alerts`, `/api/alerts/<id>/assign`, `/api/alerts/<id>/false-positive`, `/api/alerts/<id>/block-ip`, `/api/alerts/<id>/create-incident`.
+- Behavior & Nudging APIs: `/api/behavior/profile`, `/api/behavior/nudge`, `/api/behavior/train-synthetic`.
+
+14. FOLDER STRUCTURE EXPLANATION
+--------------------------------
+- /backend: Main backend modules including database.py, alerts_db.py, notifications.py, and pdf_report.py.
+- /ml: ML text/flow classifiers and contextual analyzers.
+- /behavior_tracker: SQLite logger tracking user alerts.
+- /behavior_dataset: Scripts generating and training synthetic behavior data.
+- /nudge_engine: Logic mapping user archetypes to nudges.
+- /user_profiler: Extracts user metrics and predicts profile archetypes.
+- /url_intelligence: Predicts risk score and verdicts for URLs.
+- /nextgen_sysmon_pipeline: Shadow mode telemetry runner and process tracking nodes.
+- /templates: HTML jinja dashboard layouts.
+- /uploads: Temporary folders for logs and PDF reports.
+- /models: Trained serialized ML model pickes (.pkl).
+
+15. REAL-WORLD USE CASE
+-----------------------
+A workstation on the network executes a PowerShell command carrying a Base64-encoded payload. 
+The Sysmon agent forwards Event ID 1 telemetry to ILA-SOC:
+1. The server routes it to the ML text classifier. The Calibrated Ensemble detects Base64 indicators and flags it as "Malicious" (confidence: 96%).
+2. The log is automatically promoted to a Critical Alert. L1 analyst is notified via email.
+3. The analyst logs in, reviews the command line and process tree, escalates the incident to L2, and clicks "Block IP" to append the offender to the local blocklist.
+
+16. FUTURE IMPROVEMENTS
+-----------------------
+- Distributed Ingestion: Integrate Apache Kafka or Redis queues for distributed scalability.
+- Deep Learning Models: Deploy Transformer-based LSTM network models for log sequence classification.
+- Active Directory Sync: Direct integration with Microsoft Active Directory to auto-populate user hierarchies.
+
+17. AUTHORS / TEAM
+------------------
+- [Insert Author Name 1] - Lead Developer / ML Architect
+- [Insert Author Name 2] - Frontend & UI Designer
+- [Insert Author Name 3] - AD & Network Security Engineer
+================================================================================

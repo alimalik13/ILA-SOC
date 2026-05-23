@@ -1,0 +1,6 @@
+user_id,warning_dismissal_rate,risky_url_ratio,avg_risk_score_on_bypass,response_time_variance,heeded_rate,download_attempt_rate,total_events,label
+test-negligent-user,1.0,0.71875,0.0,508.0876082219106,0.0,0.0,64.0,negligent
+test-cautious-user,0.0,0.0,0.0,0.006204231397888894,1.0,0.0,7.0,cautious
+test-impulsive-user,1.0,0.0,0.7000000000000001,6.219455491221744,0.0,0.0,13.0,impulsive
+anonymous,0.0,0.0,0.0,0.0,0.0,0.0,2.0,cautious
+0fd2d925-9cb2-4d9f-96e6-56b21da0963c,0.0,0.0,0.0,235.99482772371533,0.0,0.0,6.0,cautious
