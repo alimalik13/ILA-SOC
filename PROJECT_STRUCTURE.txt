@@ -5,6 +5,9 @@
 
 ILA-SOC-Server/
 │
+├── assets/                         # Documentation and presentation assets
+│   └── screenshots/                # Dashboard previews for the GitHub landing page
+│
 ├── backend/                        # Main backend/database package
 │   ├── __init__.py                 # Package declaration
 │   ├── alerts_db.py                # Operations for triage queue alerts

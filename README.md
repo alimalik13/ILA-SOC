@@ -4,6 +4,19 @@ ILA-SOC is a unified, highly optimized, and machine-learning-driven Security Ope
 
 ---
 
+## 📊 Dashboard Preview
+
+### Threat Overview Dashboard
+![Threat Overview](assets/screenshots/threat_overview.png)
+
+### Incident Investigation (L2) Dashboard
+![Incident Investigation](assets/screenshots/incident_investigation.png)
+
+### Log Analysis Dashboard
+![Log Analysis](assets/screenshots/log_analysis.png)
+
+---
+
 ## 🚀 Key Features
 
 * **Real-time Threat Ingestion**: Built-in support for Sysmon logs and network flow telemetry.
